@@ -8,8 +8,9 @@
 //     2. `getTimeline` reads the same cache and builds one TimelineEntry
 //        per prayer time so WidgetKit refreshes the display automatically
 //        without network round-trips.
-//     3. The main app calls `PrayerService.fetchAndCacheToday()` on launch
-//        and at midnight to keep the cache fresh.
+//     3. The main app calls `PrayerService.fetchAndCacheToday()` and
+//        `WeatherService.fetchAndCache()` on launch to keep both caches fresh.
+//        Weather has a 30-minute staleness guard — no redundant network calls.
 
 import WidgetKit
 import SwiftUI
@@ -18,9 +19,10 @@ import SwiftUI
 
 /// Carries everything the view needs — pre-computed so rendering is instant.
 struct MakamEntry: TimelineEntry {
-    let date:           Date          // The point in time this entry is valid from
-    let prayerContext:  PrayerContext? // nil → show placeholder/loading state
+    let date:           Date             // The point in time this entry is valid from
+    let prayerContext:  PrayerContext?   // nil → show placeholder/loading state
     let schedule:       DailyPrayerSchedule? // Full day schedule for medium widget list
+    let weather:        WeatherSnapshot? // nil → weather chip hidden (not an error)
     let isPlaceholder:  Bool
 }
 
@@ -41,7 +43,8 @@ extension MakamEntry {
         }
         let fakeSchedule = DailyPrayerSchedule(date: now, prayers: fakePrayers)
         let context = PrayerCalculator.context(for: fakeSchedule, at: now)
-        return MakamEntry(date: now, prayerContext: context, schedule: fakeSchedule, isPlaceholder: true)
+        let fakeWeather = WeatherSnapshot(temperatureCelsius: 18, symbolName: "cloud.sun", fetchedAt: now)
+        return MakamEntry(date: now, prayerContext: context, schedule: fakeSchedule, weather: fakeWeather, isPlaceholder: true)
     }
 }
 
@@ -72,6 +75,7 @@ struct MakamTimelineProvider: TimelineProvider {
                 date:          .now,
                 prayerContext: nil,
                 schedule:      nil,
+                weather:       nil,
                 isPlaceholder: true
             )
             let timeline = Timeline(entries: [placeholder], policy: .after(.now.addingTimeInterval(900)))
@@ -79,8 +83,11 @@ struct MakamTimelineProvider: TimelineProvider {
             return
         }
 
-        // Build one entry per prayer time for today
+        // Build one entry per prayer time for today.
+        // Weather is fetched once and shared across all entries — it is ambient
+        // context that does not need per-prayer precision.
         let refreshDates = PrayerCalculator.timelineRefreshDates(for: schedule)
+        let weather      = WeatherService.cachedWeather()   // nil-safe — widget never networks
         var entries: [MakamEntry] = []
 
         for refreshDate in refreshDates {
@@ -89,6 +96,7 @@ struct MakamTimelineProvider: TimelineProvider {
                 date:          refreshDate,
                 prayerContext: ctx,
                 schedule:      schedule,
+                weather:       weather,
                 isPlaceholder: false
             )
             entries.append(entry)
@@ -116,6 +124,7 @@ struct MakamTimelineProvider: TimelineProvider {
             date:          .now,
             prayerContext: ctx,
             schedule:      schedule,
+            weather:       WeatherService.cachedWeather(),
             isPlaceholder: false
         )
     }

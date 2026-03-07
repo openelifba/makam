@@ -61,6 +61,34 @@ struct PrayerProgressRing: View {
     }
 }
 
+// MARK: - Shared: Weather Chip
+//
+// Intentionally muted — weight ultraLight, color sandDim.
+// The chip vanishes entirely when `weather` is nil (no cache yet).
+//
+//  Small  →  top-right corner overlay on the widget
+//  Medium →  bottom of the left column, below next-prayer label
+//  Lock   →  "· 12°" suffix appended to the countdown line
+
+struct WeatherChip: View {
+    let weather: WeatherSnapshot
+    var iconSize: CGFloat = 9
+    var textSize: CGFloat = 9
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Image(systemName: weather.symbolName)
+                .font(.system(size: iconSize, weight: .ultraLight))
+                .foregroundStyle(Makam.sandDim)
+            Text(weather.temperatureDisplay)
+                .font(.system(size: textSize, weight: .ultraLight, design: .rounded))
+                .tracking(Makam.trackingNormal)
+                .foregroundStyle(Makam.sandDim)
+                .monospacedDigit()
+        }
+    }
+}
+
 // MARK: - Shared: Prayer Name Label
 
 /// The primary prayer name in SF Pro Rounded with tracked capitals.
@@ -106,83 +134,95 @@ struct CountdownLabel: View {
 // MARK: - SMALL WIDGET
 
 /// Layout: centered ring with prayer name inside, countdown below.
+/// Weather chip floats in the top-right corner — ultraLight, sandDim, invisible at a glance.
 ///
 /// ┌──────────────────┐
-/// │                  │
+/// │           ☁ 12° │ ← WeatherChip (9pt, sandDim, top-right)
 /// │    ╭───────╮     │
-/// │    │ AKŞAM │     │ ← PrayerNameLabel (14pt)
+/// │    │ AKŞAM │     │ ← PrayerNameLabel (13pt)
 /// │    │ 17:42 │     │ ← time of prayer (10pt)
-/// │    ╰───────╯     │ ← PrayerProgressRing
-/// │   01:23:45       │ ← CountdownLabel
-/// │   Yatsı'ya       │ ← sub-label
-/// │                  │
+/// │    ╰───────╯     │ ← PrayerProgressRing (88pt)
+/// │   01:23:45       │ ← CountdownLabel (22pt)
+/// │   → Yatsı        │ ← sub-label (10pt sandDim)
 /// └──────────────────┘
 struct SmallWidgetView: View {
     let entry: MakamEntry
     private let ringDiameter: CGFloat = 88
 
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: 0)
+        ZStack(alignment: .topTrailing) {
+            // Primary content — vertically centred
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
 
-            // Ring + labels inside
-            ZStack {
-                PrayerProgressRing(
-                    progress:  entry.prayerContext?.elapsedFraction() ?? 0,
-                    diameter:  ringDiameter
-                )
-
-                VStack(spacing: 2) {
-                    PrayerNameLabel(
-                        name: entry.prayerContext?.current.name ?? "—",
-                        size: 13
+                // Ring + labels inside
+                ZStack {
+                    PrayerProgressRing(
+                        progress:  entry.prayerContext?.elapsedFraction() ?? 0,
+                        diameter:  ringDiameter
                     )
-                    if let ctx = entry.prayerContext {
-                        Text(timeString(ctx.current.time))
-                            .font(.system(size: 10, weight: .ultraLight, design: .rounded))
+
+                    VStack(spacing: 2) {
+                        PrayerNameLabel(
+                            name: entry.prayerContext?.current.name ?? "—",
+                            size: 13
+                        )
+                        if let ctx = entry.prayerContext {
+                            Text(timeString(ctx.current.time))
+                                .font(.system(size: 10, weight: .ultraLight, design: .rounded))
+                                .tracking(Makam.trackingNormal)
+                                .foregroundStyle(Makam.sandDim)
+                        }
+                    }
+                }
+                .frame(width: ringDiameter, height: ringDiameter)
+
+                Spacer().frame(height: 10)
+
+                // Countdown
+                CountdownLabel(entry: entry, size: 22)
+
+                Spacer().frame(height: 3)
+
+                // Sub-label: "→ Yatsı'ya"
+                if let ctx = entry.prayerContext {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 8, weight: .light))
+                            .foregroundStyle(Makam.sandDim)
+                        Text(ctx.next.name)
+                            .font(.system(size: 10, weight: .regular, design: .rounded))
                             .tracking(Makam.trackingNormal)
                             .foregroundStyle(Makam.sandDim)
                     }
                 }
+
+                Spacer(minLength: 0)
             }
-            .frame(width: ringDiameter, height: ringDiameter)
+            .padding(.horizontal, 14)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            Spacer().frame(height: 10)
-
-            // Countdown
-            CountdownLabel(entry: entry, size: 22)
-
-            Spacer().frame(height: 3)
-
-            // Sub-label: "→ Yatsı'ya"
-            if let ctx = entry.prayerContext {
-                HStack(spacing: 4) {
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 8, weight: .light))
-                        .foregroundStyle(Makam.sandDim)
-                    Text(ctx.next.name)
-                        .font(.system(size: 10, weight: .regular, design: .rounded))
-                        .tracking(Makam.trackingNormal)
-                        .foregroundStyle(Makam.sandDim)
-                }
+            // Weather chip — top-right corner, does not affect layout
+            if let weather = entry.weather {
+                WeatherChip(weather: weather)
+                    .padding(.top, 10)
+                    .padding(.trailing, 12)
             }
-
-            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 14)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
 // MARK: - MEDIUM WIDGET
 
 /// Layout: ring on the left (small), full prayer list on the right.
+/// Weather appears below the next-prayer label in the left column.
 ///
 /// ┌────────────────────────────────────────┐
 /// │  ╭───╮   İmsak    05:23               │
 /// │  │   │ ● AKŞAM   17:42  ← active     │
 /// │  ╰───╯   Yatsı   19:05               │
 /// │  01:23   Yatsı'ya kadar               │
+/// │  ☁ 12°                               │ ← WeatherChip (8pt, sandDim)
 /// └────────────────────────────────────────┘
 struct MediumWidgetView: View {
     let entry: MakamEntry
@@ -215,6 +255,12 @@ struct MediumWidgetView: View {
                         .font(.system(size: 9, weight: .regular, design: .rounded))
                         .tracking(Makam.trackingNormal)
                         .foregroundStyle(Makam.sandDim)
+                }
+
+                // Weather — ambient, secondary, below next-prayer label
+                if let weather = entry.weather {
+                    WeatherChip(weather: weather, iconSize: 8, textSize: 8)
+                        .padding(.top, 2)
                 }
             }
             .frame(width: ringDiameter + 8)
@@ -334,7 +380,19 @@ struct AccessoryRectangularView: View {
                     .tracking(Makam.trackingLoose)
                     .lineLimit(1)
 
-                CountdownLabel(entry: entry, size: 11)
+                // Countdown + optional temperature suffix on the same line
+                HStack(spacing: 4) {
+                    CountdownLabel(entry: entry, size: 11)
+                    if let weather = entry.weather {
+                        Text("·")
+                            .font(.system(size: 9, weight: .ultraLight))
+                            .foregroundStyle(Makam.sandDim)
+                        Text(weather.temperatureDisplay)
+                            .font(.system(size: 10, weight: .ultraLight, design: .rounded))
+                            .foregroundStyle(Makam.sandDim)
+                            .monospacedDigit()
+                    }
+                }
             }
 
             Spacer()
