@@ -1,0 +1,41 @@
+name: Makam
+options:
+  bundleIdPrefix: com.makam
+targets:
+  Makam:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Makam
+    settings:
+      base:
+        INFOPLIST_FILE: Makam/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.makam.app
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_PREVIEWS: YES
+        SWIFT_VERSION: 5.0
+    entitlements:
+      path: Makam/Makam.entitlements
+      contents:
+        com.apple.security.application-groups:
+          - group.com.makam.shared
+
+  MakamWidget:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: MakamWidget
+    dependencies:
+      - target: Makam
+    settings:
+      base:
+        INFOPLIST_FILE: MakamWidget/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.makam.app.widget
+        SWIFT_VERSION: 5.0
+    entitlements:
+      path: MakamWidget/MakamWidget.entitlements
+      contents:
+        com.apple.security.application-groups:
+          - group.com.makam.shared

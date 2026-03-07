@@ -1,0 +1,10 @@
+# Swift & Xcode
+.DS_Store
+.build/
+.swiftpm/
+Makam.xcodeproj/
+DerivedData/
+
+# Project configuration
+*.swp
+*.lock
