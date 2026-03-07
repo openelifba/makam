@@ -30,11 +30,11 @@ struct ContentView: View {
     }
     
     private var headerView: some View {
-        VStack(spacing: 4) {
-            Text("MAKAM")
-                .font(.system(size: 24, weight: .bold, design: .rounded))
-                .tracking(Makam.trackingLoose)
-                .foregroundStyle(Makam.sand)
+        VStack(spacing: 8) {
+            Image("MakamLogo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 60, height: 60)
             
             Text("Ankara")
                 .font(.system(size: 14, weight: .regular, design: .rounded))
