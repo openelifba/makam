@@ -2,24 +2,26 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var viewModel: PrayerViewModel
-    
+
+    @State private var showWeatherSheet = false
+
     var body: some View {
         ZStack {
             Makam.bg.ignoresSafeArea()
-            
+
             if viewModel.isLoading && viewModel.schedule == nil {
                 ProgressView()
                     .tint(Makam.gold)
             } else if let schedule = viewModel.schedule {
                 VStack(spacing: 24) {
                     headerView
-                    
+
                     if let ctx = viewModel.context {
                         activePrayerCard(ctx: ctx)
                     }
-                    
+
                     prayerList(schedule: schedule)
-                    
+
                     Spacer()
                 }
                 .padding(.top, 20)
@@ -27,21 +29,35 @@ struct ContentView: View {
                 errorView(error)
             }
         }
+        .sheet(isPresented: $showWeatherSheet) {
+            if case .loaded(let snapshot) = viewModel.weatherState {
+                WeatherDetailSheet(snapshot: snapshot, schedule: viewModel.schedule)
+                    .presentationDetents([.fraction(0.45)])
+                    .presentationBackground(Makam.bg)
+                    .presentationDragIndicator(.hidden) // we draw our own handle
+            }
+        }
     }
-    
+
+    // MARK: - Header
+
     private var headerView: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 6) {
             Image("MakamLogo")
                 .resizable()
                 .scaledToFit()
                 .frame(width: 60, height: 60)
-            
+
             Text("Ankara")
                 .font(.system(size: 14, weight: .regular, design: .rounded))
                 .foregroundStyle(Makam.sandDim)
+
+            WeatherChip(state: viewModel.weatherState, showSheet: $showWeatherSheet)
         }
     }
-    
+
+    // MARK: - Active Prayer Card
+
     private func activePrayerCard(ctx: PrayerContext) -> some View {
         VStack(spacing: 16) {
             ZStack {
@@ -50,21 +66,21 @@ struct ContentView: View {
                     diameter: 180,
                     lineWidth: 6
                 )
-                
+
                 VStack(spacing: 8) {
                     PrayerNameLabel(name: ctx.current.name, size: 28)
-                    
+
                     Text(timeString(ctx.current.time))
                         .font(.system(size: 20, weight: .light, design: .rounded))
                         .foregroundStyle(Makam.sandDim)
                 }
             }
-            
+
             VStack(spacing: 4) {
                 Text(viewModel.context?.countdownHMS() ?? "--:--:--")
                     .font(.system(size: 32, weight: .medium, design: .monospaced))
                     .foregroundStyle(Makam.white)
-                
+
                 HStack(spacing: 4) {
                     Image(systemName: "arrow.right")
                         .font(.system(size: 10))
@@ -76,7 +92,9 @@ struct ContentView: View {
         }
         .padding(.vertical, 20)
     }
-    
+
+    // MARK: - Prayer List
+
     private func prayerList(schedule: DailyPrayerSchedule) -> some View {
         VStack(spacing: 12) {
             ForEach(schedule.prayers) { prayer in
@@ -85,13 +103,13 @@ struct ContentView: View {
                         .font(.system(size: 16, weight: .light))
                         .frame(width: 24)
                         .foregroundStyle(Makam.gold)
-                    
+
                     Text(prayer.name)
                         .font(.system(size: 16, weight: .regular, design: .rounded))
                         .foregroundStyle(Makam.sand)
-                    
+
                     Spacer()
-                    
+
                     Text(timeString(prayer.time))
                         .font(.system(size: 16, weight: .light, design: .monospaced))
                         .foregroundStyle(Makam.white.opacity(0.8))
@@ -106,7 +124,9 @@ struct ContentView: View {
             }
         }
     }
-    
+
+    // MARK: - Error
+
     private func errorView(_ message: String) -> some View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
@@ -123,7 +143,9 @@ struct ContentView: View {
         }
         .padding()
     }
-    
+
+    // MARK: - Helpers
+
     private func timeString(_ date: Date) -> String {
         let fmt = DateFormatter()
         fmt.dateFormat = "HH:mm"
@@ -131,9 +153,9 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Reused Design Tokens & Components (Simplified for App)
+// MARK: - Design Tokens
 
-private enum Makam {
+enum Makam {
     static let sand       = Color(red: 0.910, green: 0.835, blue: 0.690)
     static let sandDim    = Color(red: 0.910, green: 0.835, blue: 0.690).opacity(0.45)
     static let gold       = Color(red: 0.780, green: 0.620, blue: 0.340)
@@ -143,11 +165,13 @@ private enum Makam {
     static let trackingLoose: CGFloat = 2.5
 }
 
+// MARK: - Shared Components
+
 struct PrayerProgressRing: View {
     let progress: Double
     let diameter: CGFloat
     let lineWidth: CGFloat
-    
+
     var body: some View {
         ZStack {
             Circle()
@@ -164,7 +188,7 @@ struct PrayerProgressRing: View {
 struct PrayerNameLabel: View {
     let name: String
     let size: CGFloat
-    
+
     var body: some View {
         Text(name.uppercased())
             .font(.system(size: size, weight: .semibold, design: .rounded))
