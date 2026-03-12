@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject var viewModel: PrayerViewModel
 
+    @State private var showSettings = false
     @State private var showWeatherSheet = false
 
     var body: some View {
@@ -29,12 +30,16 @@ struct ContentView: View {
                 errorView(error)
             }
         }
+        .sheet(isPresented: $showSettings) {
+            SettingsView()
+                .environmentObject(viewModel)
+        }
         .sheet(isPresented: $showWeatherSheet) {
             if case .loaded(let snapshot) = viewModel.weatherState {
                 WeatherDetailSheet(snapshot: snapshot, schedule: viewModel.schedule)
                     .presentationDetents([.fraction(0.45)])
                     .presentationBackground(Makam.bg)
-                    .presentationDragIndicator(.hidden) // we draw our own handle
+                    .presentationDragIndicator(.hidden)
             }
         }
     }
@@ -42,17 +47,38 @@ struct ContentView: View {
     // MARK: - Header
 
     private var headerView: some View {
-        VStack(spacing: 6) {
-            Image("MakamLogo")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 60, height: 60)
+        ZStack {
+            // Centered logo + location name + weather chip
+            VStack(spacing: 8) {
+                Image("MakamLogo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 60, height: 60)
 
-            Text("Ankara")
-                .font(.system(size: 14, weight: .regular, design: .rounded))
-                .foregroundStyle(Makam.sandDim)
+                HStack(spacing: 6) {
+                    Image(systemName: "location.fill")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Makam.gold)
+                    Text(viewModel.locationName)
+                        .font(.system(size: 18, weight: .regular, design: .rounded))
+                        .foregroundStyle(Makam.sand)
+                }
 
-            WeatherChip(state: viewModel.weatherState, showSheet: $showWeatherSheet)
+                WeatherChip(state: viewModel.weatherState, showSheet: $showWeatherSheet)
+            }
+
+            // Settings button aligned to trailing edge
+            HStack {
+                Spacer()
+                Button {
+                    showSettings = true
+                } label: {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 20, weight: .light))
+                        .foregroundStyle(Makam.sandDim)
+                }
+                .padding(.trailing, 20)
+            }
         }
     }
 
