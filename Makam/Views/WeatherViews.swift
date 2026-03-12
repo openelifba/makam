@@ -29,7 +29,7 @@ struct WeatherChip: View {
             // Skeleton placeholder that matches the app's loading idiom
             RoundedRectangle(cornerRadius: 3)
                 .fill(Makam.goldDim)
-                .frame(width: 72, height: 9)
+                .frame(width: 88, height: 11)
                 .padding(.top, 1)
 
         case .loaded(let snapshot):
@@ -45,19 +45,19 @@ struct WeatherChip: View {
     private func chipContent(_ weather: WeatherSnapshot) -> some View {
         HStack(spacing: 4) {
             Image(systemName: weather.sfSymbol)
-                .font(.system(size: 11, weight: .regular))
+                .font(.system(size: 14, weight: .regular))
                 .foregroundStyle(Makam.sandDim.opacity(0.75))
 
             Text("\(weather.temperature)°")
-                .font(.system(size: 11, weight: .regular, design: .rounded))
+                .font(.system(size: 14, weight: .regular, design: .rounded))
                 .foregroundStyle(Makam.sandDim.opacity(0.75))
 
             Text("·")
-                .font(.system(size: 9))
+                .font(.system(size: 12))
                 .foregroundStyle(Makam.sandDim.opacity(0.35))
 
             Text(weather.shortCondition)
-                .font(.system(size: 11, weight: .regular, design: .rounded))
+                .font(.system(size: 14, weight: .regular, design: .rounded))
                 .foregroundStyle(Makam.sandDim.opacity(0.60))
                 .lineLimit(1)
         }

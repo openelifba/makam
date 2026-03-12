@@ -47,7 +47,7 @@ enum WeatherService {
         components?.queryItems = [
             URLQueryItem(name: "latitude",      value: String(format: "%.4f", latitude)),
             URLQueryItem(name: "longitude",     value: String(format: "%.4f", longitude)),
-            URLQueryItem(name: "current",       value: "temperature_2m,apparent_temperature,relative_humidity_2m,windspeed_10m,weather_code"),
+            URLQueryItem(name: "current",       value: "temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code"),
             URLQueryItem(name: "daily",         value: "sunrise,sunset"),
             URLQueryItem(name: "timezone",      value: "auto"),
             URLQueryItem(name: "forecast_days", value: "1")
