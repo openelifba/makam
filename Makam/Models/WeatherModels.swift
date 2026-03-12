@@ -47,7 +47,7 @@ struct OpenMeteoCurrent: Codable {
         case temperature2m       = "temperature_2m"
         case apparentTemperature = "apparent_temperature"
         case relativeHumidity2m  = "relative_humidity_2m"
-        case windspeed10m        = "windspeed_10m"
+        case windspeed10m        = "wind_speed_10m"
         case weatherCode         = "weather_code"
     }
 }
