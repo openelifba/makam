@@ -43,13 +43,13 @@ struct ContentView: View {
                     .scaledToFit()
                     .frame(width: 60, height: 60)
 
-                HStack(spacing: 4) {
+                HStack(spacing: 6) {
                     Image(systemName: "location.fill")
-                        .font(.system(size: 10))
+                        .font(.system(size: 13))
                         .foregroundStyle(Makam.gold)
                     Text(viewModel.locationName)
-                        .font(.system(size: 14, weight: .regular, design: .rounded))
-                        .foregroundStyle(Makam.sandDim)
+                        .font(.system(size: 18, weight: .regular, design: .rounded))
+                        .foregroundStyle(Makam.sand)
                 }
             }
 
