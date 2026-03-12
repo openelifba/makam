@@ -45,10 +45,10 @@ struct ContentView: View {
 
                 HStack(spacing: 6) {
                     Image(systemName: "location.fill")
-                        .font(.system(size: 13))
+                        .font(.system(size: 16))
                         .foregroundStyle(Makam.gold)
                     Text(viewModel.locationName)
-                        .font(.system(size: 18, weight: .regular, design: .rounded))
+                        .font(.system(size: 22, weight: .regular, design: .rounded))
                         .foregroundStyle(Makam.sand)
                 }
             }
