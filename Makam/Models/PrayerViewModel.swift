@@ -7,6 +7,7 @@ class PrayerViewModel: ObservableObject {
     @Published var context: PrayerContext?
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var locationName: String = SettingsViewModel.savedLocationLabel()
 
     private var timer: AnyCancellable?
 
@@ -17,15 +18,30 @@ class PrayerViewModel: ObservableObject {
     func fetchPrayers() async {
         isLoading = true
         errorMessage = nil
+
         do {
-            let today = try await PrayerService.fetchAndCacheToday()
+            let today: DailyPrayerSchedule
+
+            if let districtId = UserDefaults.standard.savedDistrictId {
+                // Fetch from Imsakiyem API using the saved district
+                let entries = try await ImsakiyemService.fetchDailyPrayerTimes(districtId: districtId)
+                guard let schedule = try ImsakiyemService.toDailySchedule(from: entries) else {
+                    throw ImsakiyemServiceError.noDataForToday
+                }
+                today = schedule
+            } else {
+                // Fall back to Aladhan with default city (Ankara) if no district is saved yet
+                today = try await PrayerService.fetchAndCacheToday()
+            }
+
             self.schedule = today
+            self.locationName = SettingsViewModel.savedLocationLabel()
             self.refreshContext()
-            self.isLoading = false
         } catch {
             self.errorMessage = error.localizedDescription
-            self.isLoading = false
         }
+
+        self.isLoading = false
     }
 
     func refreshContext() {
