@@ -35,15 +35,17 @@ enum PrayerServiceError: LocalizedError {
 
 /// Diyanet city identifier — extend as needed for multi-city support.
 struct DiyanetCity {
-    let id:       Int
-    let name:     String
-    let cityName: String
-    let country:  String
+    let id:        Int
+    let name:      String
+    let cityName:  String
+    let country:   String
+    let latitude:  Double   // WGS84, used for weather API
+    let longitude: Double   // WGS84, used for weather API
 
     // Presets for common cities
-    static let istanbul  = DiyanetCity(id: 9541, name: "İstanbul", cityName: "Istanbul", country: "Turkey")
-    static let ankara    = DiyanetCity(id: 9206, name: "Ankara",   cityName: "Ankara",   country: "Turkey")
-    static let izmir     = DiyanetCity(id: 9560, name: "İzmir",    cityName: "Izmir",    country: "Turkey")
+    static let istanbul  = DiyanetCity(id: 9541, name: "İstanbul", cityName: "Istanbul", country: "Turkey", latitude: 41.0082, longitude: 28.9784)
+    static let ankara    = DiyanetCity(id: 9206, name: "Ankara",   cityName: "Ankara",   country: "Turkey", latitude: 39.9334, longitude: 32.8597)
+    static let izmir     = DiyanetCity(id: 9560, name: "İzmir",    cityName: "Izmir",    country: "Turkey", latitude: 38.4192, longitude: 27.1287)
 }
 
 // MARK: - Prayer Service

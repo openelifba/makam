@@ -9,7 +9,12 @@ class PrayerViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var locationName: String = SettingsViewModel.savedLocationLabel()
 
+    // Weather — fetched opportunistically after prayer data loads.
+    // Failures are silent: the app's primary function is unaffected.
+    @Published var weatherState: WeatherState = .idle
+
     private var timer: AnyCancellable?
+    private let city: DiyanetCity = .ankara
 
     init() {
         startTimer()
@@ -37,11 +42,34 @@ class PrayerViewModel: ObservableObject {
             self.schedule = today
             self.locationName = SettingsViewModel.savedLocationLabel()
             self.refreshContext()
+            self.isLoading = false
+            // Weather is secondary — fetch after prayer data succeeds.
+            await fetchWeather()
         } catch {
             self.errorMessage = error.localizedDescription
+            self.isLoading = false
+        }
+    }
+
+    func fetchWeather() async {
+        // Keep displaying stale data while refreshing in the background.
+        switch weatherState {
+        case .loaded: break
+        default:      weatherState = .loading
         }
 
-        self.isLoading = false
+        do {
+            let snapshot = try await WeatherService.fetchWeather(
+                latitude:  city.latitude,
+                longitude: city.longitude
+            )
+            weatherState = .loaded(snapshot)
+        } catch {
+            // Only move to .failed if we have no data to show.
+            if case .loading = weatherState {
+                weatherState = .failed
+            }
+        }
     }
 
     func refreshContext() {
