@@ -2,24 +2,25 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var viewModel: PrayerViewModel
-    
+    @State private var showSettings = false
+
     var body: some View {
         ZStack {
             Makam.bg.ignoresSafeArea()
-            
+
             if viewModel.isLoading && viewModel.schedule == nil {
                 ProgressView()
                     .tint(Makam.gold)
             } else if let schedule = viewModel.schedule {
                 VStack(spacing: 24) {
                     headerView
-                    
+
                     if let ctx = viewModel.context {
                         activePrayerCard(ctx: ctx)
                     }
-                    
+
                     prayerList(schedule: schedule)
-                    
+
                     Spacer()
                 }
                 .padding(.top, 20)
@@ -27,18 +28,43 @@ struct ContentView: View {
                 errorView(error)
             }
         }
+        .sheet(isPresented: $showSettings) {
+            SettingsView()
+                .environmentObject(viewModel)
+        }
     }
-    
+
     private var headerView: some View {
-        VStack(spacing: 8) {
-            Image("MakamLogo")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 60, height: 60)
-            
-            Text("Ankara")
-                .font(.system(size: 14, weight: .regular, design: .rounded))
-                .foregroundStyle(Makam.sandDim)
+        ZStack {
+            // Centered logo + location name
+            VStack(spacing: 8) {
+                Image("MakamLogo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 60, height: 60)
+
+                HStack(spacing: 4) {
+                    Image(systemName: "location.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Makam.gold)
+                    Text(viewModel.locationName)
+                        .font(.system(size: 14, weight: .regular, design: .rounded))
+                        .foregroundStyle(Makam.sandDim)
+                }
+            }
+
+            // Settings button aligned to trailing edge
+            HStack {
+                Spacer()
+                Button {
+                    showSettings = true
+                } label: {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 20, weight: .light))
+                        .foregroundStyle(Makam.sandDim)
+                }
+                .padding(.trailing, 20)
+            }
         }
     }
     
