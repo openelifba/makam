@@ -134,19 +134,16 @@ enum ImsakiyemService {
 
     // MARK: - Prayer Times Endpoint
 
-    static func fetchDailyPrayerTimes(districtId: String) async throws -> [ImsakiyemPrayerTime] {
+    static func fetchDailyPrayerTimes(districtId: String) async throws -> ImsakiyemPrayerTime {
         guard let url = URL(string: "\(baseURL)/prayer-times/\(districtId)/daily") else {
             throw ImsakiyemServiceError.invalidURL
         }
-        return try await fetch([ImsakiyemPrayerTime].self, from: url)
+        return try await fetch(ImsakiyemPrayerTime.self, from: url)
     }
 
     // MARK: - Convert to Domain Model
 
-    static func toDailySchedule(from prayerTimes: [ImsakiyemPrayerTime]) throws -> DailyPrayerSchedule? {
-        guard let entry = prayerTimes.first(where: { isToday($0.date) }) ?? prayerTimes.first else {
-            return nil
-        }
+    static func toDailySchedule(from entry: ImsakiyemPrayerTime) -> DailyPrayerSchedule? {
         return makeDailySchedule(from: entry)
     }
 
