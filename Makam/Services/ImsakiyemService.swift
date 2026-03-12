@@ -138,7 +138,33 @@ enum ImsakiyemService {
         guard let url = URL(string: "\(baseURL)/prayer-times/\(districtId)/daily") else {
             throw ImsakiyemServiceError.invalidURL
         }
-        return try await fetch([ImsakiyemPrayerTime].self, from: url)
+        var request = URLRequest(url: url)
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        let data: Data
+        do {
+            let (responseData, _) = try await URLSession.shared.data(for: request)
+            data = responseData
+        } catch {
+            throw ImsakiyemServiceError.network(error)
+        }
+
+        // The daily endpoint may return a single object or an array — handle both.
+        if let response = try? JSONDecoder().decode(ImsakiyemResponse<[ImsakiyemPrayerTime]>.self, from: data) {
+            return response.data
+        }
+        if let response = try? JSONDecoder().decode(ImsakiyemResponse<ImsakiyemPrayerTime>.self, from: data) {
+            return [response.data]
+        }
+        if let raw = String(data: data, encoding: .utf8) {
+            print("[ImsakiyemService] Decode failed for \(url)\nRaw: \(raw.prefix(1000))")
+        }
+        do {
+            _ = try JSONDecoder().decode(ImsakiyemResponse<[ImsakiyemPrayerTime]>.self, from: data)
+        } catch {
+            throw ImsakiyemServiceError.decoding(error)
+        }
+        throw ImsakiyemServiceError.noDataForToday
     }
 
     // MARK: - Convert to Domain Model
