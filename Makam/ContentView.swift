@@ -8,7 +8,11 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            Makam.bg.ignoresSafeArea()
+            // Dynamic gradient that shifts based on the active prayer period and live weather.
+            DynamicPrayerBackground(
+                prayerID:     viewModel.context?.current.id,
+                weatherState: viewModel.weatherState
+            )
 
             if viewModel.isLoading && viewModel.schedule == nil {
                 ProgressView()
