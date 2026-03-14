@@ -298,6 +298,7 @@ private struct TaskCard: View {
     @State private var showEditSheet = false
     @State private var showRescheduleSheet = false
     @State private var showDeleteConfirm = false
+    @State private var showSeriesDeleteDialog = false
 
     private static let isoFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -318,6 +319,11 @@ private struct TaskCard: View {
                     Label("\(task.duration) dk", systemImage: "clock")
                         .font(.system(size: 11, design: .rounded))
                         .foregroundStyle(Makam.sandDim)
+                    if task.repeatFrequency != .none {
+                        Label(task.repeatFrequency.label, systemImage: "arrow.clockwise")
+                            .font(.system(size: 11, design: .rounded))
+                            .foregroundStyle(Makam.gold.opacity(0.75))
+                    }
                     if let notes = task.notes, !notes.isEmpty {
                         Text(notes)
                             .font(.system(size: 11, design: .rounded))
@@ -345,7 +351,13 @@ private struct TaskCard: View {
             Button("Yeniden Planla") { showRescheduleSheet = true }
             Button("Yarına Planla") { rescheduleForTomorrow() }
             Button("Düzenle") { showEditSheet = true }
-            Button("Sil", role: .destructive) { showDeleteConfirm = true }
+            Button("Sil", role: .destructive) {
+                if task.seriesID != nil {
+                    showSeriesDeleteDialog = true
+                } else {
+                    showDeleteConfirm = true
+                }
+            }
             Button("İptal", role: .cancel) {}
         }
         .alert("Görevi Sil", isPresented: $showDeleteConfirm) {
@@ -353,6 +365,13 @@ private struct TaskCard: View {
             Button("İptal", role: .cancel) {}
         } message: {
             Text("\"\(task.title)\" silinecek. Emin misiniz?")
+        }
+        .confirmationDialog("Tekrarlayan Görevi Sil", isPresented: $showSeriesDeleteDialog, titleVisibility: .visible) {
+            Button("Yalnızca Bunu Sil", role: .destructive) { deleteTask() }
+            Button("Tüm Tekrarları Sil", role: .destructive) { deleteAllInSeries() }
+            Button("İptal", role: .cancel) {}
+        } message: {
+            Text("Bu görevi mi, yoksa tüm tekrarlayan örnekleri mi silmek istiyorsunuz?")
         }
         .sheet(isPresented: $showEditSheet) {
             EditTaskSheet(task: task)
@@ -416,6 +435,12 @@ private struct TaskCard: View {
         let repo = TaskRepository(context: context)
         try? repo.delete(task)
     }
+
+    private func deleteAllInSeries() {
+        guard let sid = task.seriesID else { return }
+        let repo = TaskRepository(context: context)
+        try? repo.deleteAllInSeries(seriesID: sid)
+    }
 }
 
 // MARK: - Add Task Sheet
@@ -430,6 +455,7 @@ private struct AddTaskSheet: View {
     @State private var selectedDate: Date
     @State private var selectedPeriod: TimePeriod = .ogle
     @State private var selectedDuration = 30
+    @State private var selectedRepeat: RepeatFrequency = .none
     @State private var notes = ""
 
     private static let isoFormatter: DateFormatter = {
@@ -461,6 +487,7 @@ private struct AddTaskSheet: View {
                     dateField
                     timePeriodField
                     durationField
+                    repeatField
                     notesField
                     saveButton
                 }
@@ -570,6 +597,37 @@ private struct AddTaskSheet: View {
         }
     }
 
+    private var repeatField: some View {
+        SheetFormField(label: "Tekrar") {
+            Menu {
+                ForEach(RepeatFrequency.allCases, id: \.self) { freq in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.15)) { selectedRepeat = freq }
+                    } label: {
+                        if selectedRepeat == freq {
+                            Label(freq.label, systemImage: "checkmark")
+                        } else {
+                            Text(freq.label)
+                        }
+                    }
+                }
+            } label: {
+                HStack {
+                    Text(selectedRepeat.label)
+                        .font(.system(size: 14, design: .rounded))
+                        .foregroundStyle(selectedRepeat == .none ? Makam.sandDim : Makam.gold)
+                    Spacer()
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Makam.sandDim)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 13)
+                .background(inputBackground)
+            }
+        }
+    }
+
     private var notesField: some View {
         SheetFormField(label: "Notlar (isteğe bağlı)") {
             ZStack(alignment: .topLeading) {
@@ -636,12 +694,13 @@ private struct AddTaskSheet: View {
         let dateString = Self.isoFormatter.string(from: selectedDate)
         let trimmedNotes = notes.trimmingCharacters(in: .whitespaces)
         let repo = TaskRepository(context: context)
-        try? repo.create(
+        try? repo.createWithRepeat(
             title: title.trimmingCharacters(in: .whitespaces),
             date: dateString,
             timePeriod: selectedPeriod,
             duration: selectedDuration,
-            notes: trimmedNotes.isEmpty ? nil : trimmedNotes
+            notes: trimmedNotes.isEmpty ? nil : trimmedNotes,
+            repeatFrequency: selectedRepeat
         )
         dismiss()
     }
@@ -659,6 +718,7 @@ private struct EditTaskSheet: View {
     @State private var selectedDate: Date
     @State private var selectedPeriod: TimePeriod
     @State private var selectedDuration: Int
+    @State private var selectedRepeat: RepeatFrequency
     @State private var notes: String
 
     private static let isoFormatter: DateFormatter = {
@@ -673,6 +733,7 @@ private struct EditTaskSheet: View {
         _selectedDate = State(initialValue: Self.isoFormatter.date(from: task.date) ?? .now)
         _selectedPeriod = State(initialValue: task.timePeriod)
         _selectedDuration = State(initialValue: task.duration)
+        _selectedRepeat = State(initialValue: task.repeatFrequency)
         _notes = State(initialValue: task.notes ?? "")
     }
 
@@ -692,6 +753,7 @@ private struct EditTaskSheet: View {
                     dateField
                     timePeriodField
                     durationField
+                    repeatField
                     notesField
                     saveButton
                 }
@@ -789,6 +851,37 @@ private struct EditTaskSheet: View {
         }
     }
 
+    private var repeatField: some View {
+        SheetFormField(label: "Tekrar") {
+            Menu {
+                ForEach(RepeatFrequency.allCases, id: \.self) { freq in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.15)) { selectedRepeat = freq }
+                    } label: {
+                        if selectedRepeat == freq {
+                            Label(freq.label, systemImage: "checkmark")
+                        } else {
+                            Text(freq.label)
+                        }
+                    }
+                }
+            } label: {
+                HStack {
+                    Text(selectedRepeat.label)
+                        .font(.system(size: 14, design: .rounded))
+                        .foregroundStyle(selectedRepeat == .none ? Makam.sandDim : Makam.gold)
+                    Spacer()
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Makam.sandDim)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 13)
+                .background(inputBackground)
+            }
+        }
+    }
+
     private var notesField: some View {
         SheetFormField(label: "Notlar (isteğe bağlı)") {
             ZStack(alignment: .topLeading) {
@@ -860,7 +953,8 @@ private struct EditTaskSheet: View {
             timePeriod: selectedPeriod,
             duration: selectedDuration,
             notes: trimmedNotes.isEmpty ? nil : trimmedNotes,
-            isCompleted: task.isCompleted
+            isCompleted: task.isCompleted,
+            repeatFrequency: selectedRepeat
         )
         dismiss()
     }
