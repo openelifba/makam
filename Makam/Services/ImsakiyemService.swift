@@ -64,25 +64,96 @@ struct ImsakiyemDistrict: Codable, Identifiable, Hashable {
 
 // MARK: - Prayer Time Models
 
-struct ImsakiyemPrayerTime: Decodable {
-    let districtId: String
-    let date: String
-    let times: ImsakiyemTimes
-
-    enum CodingKeys: String, CodingKey {
-        case districtId = "district_id"
-        case date
-        case times
-    }
-}
-
-struct ImsakiyemTimes: Decodable {
+struct ImsakiyemTimes {
     let imsak: String
     let gunes: String
     let ogle: String
     let ikindi: String
     let aksam: String
     let yatsi: String
+}
+
+struct ImsakiyemPrayerTime: Decodable {
+    let districtId: String
+    let date: String
+    let times: ImsakiyemTimes
+
+    // The API may return prayer times either as a nested `times` object with
+    // lowercase keys, or as flat top-level fields with capitalised keys
+    // (e.g. "Imsak", "Gunes", …). Both layouts are handled below.
+    private enum CodingKeys: String, CodingKey {
+        case districtId = "district_id"
+        case date
+        // nested layout
+        case times
+        // flat capitalised layout
+        case imsakCap  = "Imsak"
+        case gunesCap  = "Gunes"
+        case ogleCap   = "Ogle"
+        case ikindiCap = "Ikindi"
+        case aksamCap  = "Aksam"
+        case yatsiCap  = "Yatsi"
+        // flat lowercase layout (fallback)
+        case imsakLow  = "imsak"
+        case gunesLow  = "gunes"
+        case ogleLow   = "ogle"
+        case ikindiLow = "ikindi"
+        case aksamLow  = "aksam"
+        case yatsiLow  = "yatsi"
+    }
+
+    private enum NestedTimesKeys: String, CodingKey {
+        case imsak, gunes, ogle, ikindi, aksam, yatsi
+        case imsakCap  = "Imsak"
+        case gunesCap  = "Gunes"
+        case ogleCap   = "Ogle"
+        case ikindiCap = "Ikindi"
+        case aksamCap  = "Aksam"
+        case yatsiCap  = "Yatsi"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        districtId = try c.decode(String.self, forKey: .districtId)
+        date       = try c.decode(String.self, forKey: .date)
+
+        // 1. Try nested `times` object (lowercase or capitalised inside)
+        if c.contains(.times),
+           let nested = try? c.nestedContainer(keyedBy: NestedTimesKeys.self, forKey: .times) {
+            let imsak  = (try? nested.decode(String.self, forKey: .imsak))  ?? (try nested.decode(String.self, forKey: .imsakCap))
+            let gunes  = (try? nested.decode(String.self, forKey: .gunes))  ?? (try nested.decode(String.self, forKey: .gunesCap))
+            let ogle   = (try? nested.decode(String.self, forKey: .ogle))   ?? (try nested.decode(String.self, forKey: .ogleCap))
+            let ikindi = (try? nested.decode(String.self, forKey: .ikindi)) ?? (try nested.decode(String.self, forKey: .ikindiCap))
+            let aksam  = (try? nested.decode(String.self, forKey: .aksam))  ?? (try nested.decode(String.self, forKey: .aksamCap))
+            let yatsi  = (try? nested.decode(String.self, forKey: .yatsi))  ?? (try nested.decode(String.self, forKey: .yatsiCap))
+            times = ImsakiyemTimes(imsak: imsak, gunes: gunes, ogle: ogle,
+                                   ikindi: ikindi, aksam: aksam, yatsi: yatsi)
+            return
+        }
+
+        // 2. Flat capitalised keys ("Imsak", "Gunes", …)
+        if c.contains(.imsakCap) {
+            times = ImsakiyemTimes(
+                imsak:  try c.decode(String.self, forKey: .imsakCap),
+                gunes:  try c.decode(String.self, forKey: .gunesCap),
+                ogle:   try c.decode(String.self, forKey: .ogleCap),
+                ikindi: try c.decode(String.self, forKey: .ikindiCap),
+                aksam:  try c.decode(String.self, forKey: .aksamCap),
+                yatsi:  try c.decode(String.self, forKey: .yatsiCap)
+            )
+            return
+        }
+
+        // 3. Flat lowercase keys ("imsak", "gunes", …)
+        times = ImsakiyemTimes(
+            imsak:  try c.decode(String.self, forKey: .imsakLow),
+            gunes:  try c.decode(String.self, forKey: .gunesLow),
+            ogle:   try c.decode(String.self, forKey: .ogleLow),
+            ikindi: try c.decode(String.self, forKey: .ikindiLow),
+            aksam:  try c.decode(String.self, forKey: .aksamLow),
+            yatsi:  try c.decode(String.self, forKey: .yatsiLow)
+        )
+    }
 }
 
 // MARK: - Service Errors
@@ -148,22 +219,6 @@ enum ImsakiyemService {
     }
 
     // MARK: - Private Helpers
-
-    private static func isToday(_ dateString: String) -> Bool {
-        // API returns ISO 8601: "2026-03-12T00:00:00.000Z"
-        let iso = ISO8601DateFormatter()
-        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = iso.date(from: dateString) {
-            return Calendar.current.isDateInToday(date)
-        }
-        // Fallback: parse YYYY-MM-DD prefix
-        let fmt = DateFormatter()
-        fmt.dateFormat = "yyyy-MM-dd"
-        if let date = fmt.date(from: String(dateString.prefix(10))) {
-            return Calendar.current.isDateInToday(date)
-        }
-        return false
-    }
 
     private static func makeDailySchedule(from entry: ImsakiyemPrayerTime) -> DailyPrayerSchedule? {
         let today = Calendar.current.startOfDay(for: Date())
