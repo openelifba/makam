@@ -33,6 +33,10 @@ struct MainTabView: View {
                 .tabItem { Label("Namaz Vakitleri", systemImage: "moon.stars") }
                 .tag(AppTab.prayerTimes)
 
+            QiblaView()
+                .tabItem { Label("Kıble", systemImage: "location.north.line") }
+                .tag(AppTab.qibla)
+
             SettingsView(selectedTab: $selectedTab)
                 .tabItem { Label("Ayarlar", systemImage: "gearshape") }
                 .tag(AppTab.settings)
@@ -42,5 +46,5 @@ struct MainTabView: View {
 }
 
 enum AppTab {
-    case habit, prayerTimes, settings
+    case habit, prayerTimes, qibla, settings
 }
