@@ -1,6 +1,29 @@
 import Foundation
 import SwiftData
 
+// MARK: - RepeatFrequency
+
+/// How often a habit task should repeat.
+enum RepeatFrequency: String, Codable, CaseIterable {
+    case none    = "none"
+    case daily   = "daily"
+    case weekly  = "weekly"
+    case monthly = "monthly"
+    case yearly  = "yearly"
+    case custom  = "custom"
+
+    var label: String {
+        switch self {
+        case .none:    return "Tekrar yok"
+        case .daily:   return "Günlük"
+        case .weekly:  return "Haftalık"
+        case .monthly: return "Aylık"
+        case .yearly:  return "Yıllık"
+        case .custom:  return "Özel"
+        }
+    }
+}
+
 // MARK: - TimePeriod
 
 /// The six Islamic prayer periods used to schedule habit tasks.
@@ -41,6 +64,9 @@ final class HabitTask {
     /// Whether the task has been completed. Defaults to `false`.
     var isCompleted: Bool
 
+    /// How often this task repeats. Defaults to `.none` (no repeat).
+    var repeatFrequency: RepeatFrequency = RepeatFrequency.none
+
     init(
         id: String = UUID().uuidString,
         title: String,
@@ -48,7 +74,8 @@ final class HabitTask {
         timePeriod: TimePeriod,
         duration: Int,
         notes: String? = nil,
-        isCompleted: Bool = false
+        isCompleted: Bool = false,
+        repeatFrequency: RepeatFrequency = .none
     ) {
         self.id = id
         self.title = title
@@ -57,5 +84,6 @@ final class HabitTask {
         self.duration = duration
         self.notes = notes
         self.isCompleted = isCompleted
+        self.repeatFrequency = repeatFrequency
     }
 }
