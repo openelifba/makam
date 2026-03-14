@@ -47,11 +47,6 @@ struct ContentView: View {
 
     private var headerView: some View {
         VStack(spacing: 8) {
-            Image("MakamLogo")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 60, height: 60)
-
             HStack(spacing: 6) {
                 Image(systemName: "location.fill")
                     .font(.system(size: 13))
