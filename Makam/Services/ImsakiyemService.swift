@@ -69,10 +69,23 @@ struct ImsakiyemPrayerTime: Decodable {
     let date: String
     let times: ImsakiyemTimes
 
-    enum CodingKeys: String, CodingKey {
+    // `district_id` is a nested object in the API response; only `_id` is needed.
+    private struct DistrictRef: Decodable {
+        let id: String
+        enum CodingKeys: String, CodingKey { case id = "_id" }
+    }
+
+    private enum CodingKeys: String, CodingKey {
         case districtId = "district_id"
         case date
         case times
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        districtId = try c.decode(DistrictRef.self, forKey: .districtId).id
+        date       = try c.decode(String.self, forKey: .date)
+        times      = try c.decode(ImsakiyemTimes.self, forKey: .times)
     }
 }
 
@@ -138,7 +151,9 @@ enum ImsakiyemService {
         guard let url = URL(string: "\(baseURL)/prayer-times/\(districtId)/daily") else {
             throw ImsakiyemServiceError.invalidURL
         }
-        return try await fetch(ImsakiyemPrayerTime.self, from: url)
+        let entries = try await fetch([ImsakiyemPrayerTime].self, from: url)
+        guard let entry = entries.first else { throw ImsakiyemServiceError.noDataForToday }
+        return entry
     }
 
     // MARK: - Convert to Domain Model
