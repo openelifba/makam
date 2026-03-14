@@ -26,15 +26,15 @@ struct MainTabView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             HabitView()
-                .tabItem { Label("Habit", systemImage: "checklist") }
+                .tabItem { Label("Alışkanlık", systemImage: "checklist") }
                 .tag(AppTab.habit)
 
             ContentView()
-                .tabItem { Label("Praying Times", systemImage: "moon.stars") }
+                .tabItem { Label("Namaz Vakitleri", systemImage: "moon.stars") }
                 .tag(AppTab.prayerTimes)
 
             SettingsView(selectedTab: $selectedTab)
-                .tabItem { Label("Settings", systemImage: "gearshape") }
+                .tabItem { Label("Ayarlar", systemImage: "gearshape") }
                 .tag(AppTab.settings)
         }
         .tint(Makam.gold)
