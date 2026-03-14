@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 @main
 struct MakamApp: App {
@@ -13,6 +14,7 @@ struct MakamApp: App {
                     await viewModel.fetchPrayers()
                 }
         }
+        .modelContainer(for: HabitTask.self)
         .onChange(of: scenePhase) { oldPhase, newPhase in
             if newPhase == .active {
                 Task {
