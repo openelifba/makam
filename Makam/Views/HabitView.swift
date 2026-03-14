@@ -294,6 +294,17 @@ private struct TaskCard: View {
     let task: HabitTask
     @Environment(\.modelContext) private var context
 
+    @State private var showActionMenu = false
+    @State private var showEditSheet = false
+    @State private var showRescheduleSheet = false
+    @State private var showDeleteConfirm = false
+
+    private static let isoFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
     var body: some View {
         HStack(spacing: 12) {
             completionButton
@@ -327,6 +338,34 @@ private struct TaskCard: View {
                         .strokeBorder(Makam.gold.opacity(0.14), lineWidth: 0.5)
                 )
         )
+        .contentShape(Rectangle())
+        .onTapGesture { showActionMenu = true }
+        .confirmationDialog(task.title, isPresented: $showActionMenu, titleVisibility: .visible) {
+            Button("Kopyala") { makeCopy() }
+            Button("Yeniden Planla") { showRescheduleSheet = true }
+            Button("Yarına Planla") { rescheduleForTomorrow() }
+            Button("Düzenle") { showEditSheet = true }
+            Button("Sil", role: .destructive) { showDeleteConfirm = true }
+            Button("İptal", role: .cancel) {}
+        }
+        .alert("Görevi Sil", isPresented: $showDeleteConfirm) {
+            Button("Sil", role: .destructive) { deleteTask() }
+            Button("İptal", role: .cancel) {}
+        } message: {
+            Text("\"\(task.title)\" silinecek. Emin misiniz?")
+        }
+        .sheet(isPresented: $showEditSheet) {
+            EditTaskSheet(task: task)
+                .presentationDetents([.fraction(0.80), .large])
+                .presentationBackground(Makam.bg)
+                .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showRescheduleSheet) {
+            RescheduleSheet(task: task)
+                .presentationDetents([.medium])
+                .presentationBackground(Makam.bg)
+                .presentationDragIndicator(.visible)
+        }
     }
 
     private var completionButton: some View {
@@ -352,6 +391,30 @@ private struct TaskCard: View {
             }
         }
         .buttonStyle(.plain)
+    }
+
+    private func makeCopy() {
+        let repo = TaskRepository(context: context)
+        try? repo.create(
+            title: task.title,
+            date: task.date,
+            timePeriod: task.timePeriod,
+            duration: task.duration,
+            notes: task.notes
+        )
+    }
+
+    private func rescheduleForTomorrow() {
+        guard let taskDate = Self.isoFormatter.date(from: task.date),
+              let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: taskDate)
+        else { return }
+        task.date = Self.isoFormatter.string(from: tomorrow)
+        try? context.save()
+    }
+
+    private func deleteTask() {
+        let repo = TaskRepository(context: context)
+        try? repo.delete(task)
     }
 }
 
@@ -580,6 +643,351 @@ private struct AddTaskSheet: View {
             duration: selectedDuration,
             notes: trimmedNotes.isEmpty ? nil : trimmedNotes
         )
+        dismiss()
+    }
+}
+
+// MARK: - Edit Task Sheet
+
+private struct EditTaskSheet: View {
+    let task: HabitTask
+
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var context
+
+    @State private var title: String
+    @State private var selectedDate: Date
+    @State private var selectedPeriod: TimePeriod
+    @State private var selectedDuration: Int
+    @State private var notes: String
+
+    private static let isoFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
+    init(task: HabitTask) {
+        self.task = task
+        _title = State(initialValue: task.title)
+        _selectedDate = State(initialValue: Self.isoFormatter.date(from: task.date) ?? .now)
+        _selectedPeriod = State(initialValue: task.timePeriod)
+        _selectedDuration = State(initialValue: task.duration)
+        _notes = State(initialValue: task.notes ?? "")
+    }
+
+    private var isTitleValid: Bool {
+        !title.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            sheetHeader
+            Rectangle()
+                .fill(Makam.gold.opacity(0.12))
+                .frame(height: 0.5)
+            ScrollView {
+                VStack(spacing: 22) {
+                    titleField
+                    dateField
+                    timePeriodField
+                    durationField
+                    notesField
+                    saveButton
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 22)
+                .padding(.bottom, 44)
+            }
+        }
+        .background(Makam.bg.ignoresSafeArea())
+    }
+
+    private var sheetHeader: some View {
+        HStack {
+            Button("İptal") { dismiss() }
+                .font(.system(size: 15, design: .rounded))
+                .foregroundStyle(Makam.sandDim)
+            Spacer()
+            Text("Görevi Düzenle")
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .foregroundStyle(Makam.sand)
+            Spacer()
+            Button("Kaydet") { save() }
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .foregroundStyle(isTitleValid ? Makam.gold : Makam.sandDim.opacity(0.4))
+                .disabled(!isTitleValid)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
+        .padding(.bottom, 16)
+    }
+
+    private var titleField: some View {
+        SheetFormField(label: "Görev Başlığı") {
+            TextField("Örn: Kuran oku, Zikir çek…", text: $title)
+                .font(.system(size: 15, design: .rounded))
+                .foregroundStyle(Makam.sand)
+                .tint(Makam.gold)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 13)
+                .background(inputBackground)
+        }
+    }
+
+    private var dateField: some View {
+        SheetFormField(label: "Tarih") {
+            HStack {
+                DatePicker("", selection: $selectedDate, displayedComponents: .date)
+                    .datePickerStyle(.compact)
+                    .labelsHidden()
+                    .tint(Makam.gold)
+                    .environment(\.locale, Locale(identifier: "tr_TR"))
+                Spacer()
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .background(inputBackground)
+        }
+    }
+
+    private var timePeriodField: some View {
+        SheetFormField(label: "Vakit") {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(TimePeriod.allCases, id: \.self) { period in
+                        SelectionPill(
+                            label: period.rawValue,
+                            isSelected: selectedPeriod == period
+                        ) {
+                            withAnimation(.easeInOut(duration: 0.15)) { selectedPeriod = period }
+                        }
+                    }
+                }
+                .padding(.horizontal, 2)
+                .padding(.vertical, 2)
+            }
+        }
+    }
+
+    private var durationField: some View {
+        SheetFormField(label: "Süre") {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach([5, 10, 15, 20, 30, 45, 60, 90, 120], id: \.self) { mins in
+                        SelectionPill(
+                            label: durationLabel(mins),
+                            isSelected: selectedDuration == mins
+                        ) {
+                            withAnimation(.easeInOut(duration: 0.15)) { selectedDuration = mins }
+                        }
+                    }
+                }
+                .padding(.horizontal, 2)
+                .padding(.vertical, 2)
+            }
+        }
+    }
+
+    private var notesField: some View {
+        SheetFormField(label: "Notlar (isteğe bağlı)") {
+            ZStack(alignment: .topLeading) {
+                if notes.isEmpty {
+                    Text("Ek notlar veya hatırlatıcı…")
+                        .font(.system(size: 14, design: .rounded))
+                        .foregroundStyle(Makam.sandDim.opacity(0.45))
+                        .padding(.horizontal, 18)
+                        .padding(.top, 14)
+                        .allowsHitTesting(false)
+                }
+                TextEditor(text: $notes)
+                    .font(.system(size: 14, design: .rounded))
+                    .foregroundStyle(Makam.sand)
+                    .tint(Makam.gold)
+                    .scrollContentBackground(.hidden)
+                    .frame(minHeight: 88)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+            }
+            .background(inputBackground)
+        }
+    }
+
+    private var saveButton: some View {
+        Button(action: save) {
+            Text("Kaydet")
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .foregroundStyle(isTitleValid ? Makam.bg : Makam.sandDim)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 15)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(isTitleValid ? Makam.gold : Makam.gold.opacity(0.18))
+                )
+        }
+        .disabled(!isTitleValid)
+        .padding(.top, 6)
+    }
+
+    private var inputBackground: some View {
+        RoundedRectangle(cornerRadius: 10)
+            .fill(Color.white.opacity(0.05))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(Makam.gold.opacity(0.13), lineWidth: 0.5)
+            )
+    }
+
+    private func durationLabel(_ minutes: Int) -> String {
+        switch minutes {
+        case ..<60:  return "\(minutes) dk"
+        case 60:     return "1s"
+        case 90:     return "1s 30dk"
+        case 120:    return "2s"
+        default:     return "\(minutes / 60)s"
+        }
+    }
+
+    private func save() {
+        guard isTitleValid else { return }
+        let dateString = Self.isoFormatter.string(from: selectedDate)
+        let trimmedNotes = notes.trimmingCharacters(in: .whitespaces)
+        let repo = TaskRepository(context: context)
+        try? repo.update(
+            task,
+            title: title.trimmingCharacters(in: .whitespaces),
+            date: dateString,
+            timePeriod: selectedPeriod,
+            duration: selectedDuration,
+            notes: trimmedNotes.isEmpty ? nil : trimmedNotes,
+            isCompleted: task.isCompleted
+        )
+        dismiss()
+    }
+}
+
+// MARK: - Reschedule Sheet
+
+private struct RescheduleSheet: View {
+    let task: HabitTask
+
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var context
+
+    @State private var selectedDate: Date
+    @State private var selectedPeriod: TimePeriod
+
+    private static let isoFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
+    init(task: HabitTask) {
+        self.task = task
+        _selectedDate = State(initialValue: Self.isoFormatter.date(from: task.date) ?? .now)
+        _selectedPeriod = State(initialValue: task.timePeriod)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            sheetHeader
+            Rectangle()
+                .fill(Makam.gold.opacity(0.12))
+                .frame(height: 0.5)
+            ScrollView {
+                VStack(spacing: 22) {
+                    dateField
+                    timePeriodField
+                    saveButton
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 22)
+                .padding(.bottom, 44)
+            }
+        }
+        .background(Makam.bg.ignoresSafeArea())
+    }
+
+    private var sheetHeader: some View {
+        HStack {
+            Button("İptal") { dismiss() }
+                .font(.system(size: 15, design: .rounded))
+                .foregroundStyle(Makam.sandDim)
+            Spacer()
+            Text("Yeniden Planla")
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .foregroundStyle(Makam.sand)
+            Spacer()
+            Button("Planla") { save() }
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .foregroundStyle(Makam.gold)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
+        .padding(.bottom, 16)
+    }
+
+    private var dateField: some View {
+        SheetFormField(label: "Yeni Tarih") {
+            HStack {
+                DatePicker("", selection: $selectedDate, displayedComponents: .date)
+                    .datePickerStyle(.compact)
+                    .labelsHidden()
+                    .tint(Makam.gold)
+                    .environment(\.locale, Locale(identifier: "tr_TR"))
+                Spacer()
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .background(inputBackground)
+        }
+    }
+
+    private var timePeriodField: some View {
+        SheetFormField(label: "Vakit") {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(TimePeriod.allCases, id: \.self) { period in
+                        SelectionPill(
+                            label: period.rawValue,
+                            isSelected: selectedPeriod == period
+                        ) {
+                            withAnimation(.easeInOut(duration: 0.15)) { selectedPeriod = period }
+                        }
+                    }
+                }
+                .padding(.horizontal, 2)
+                .padding(.vertical, 2)
+            }
+        }
+    }
+
+    private var saveButton: some View {
+        Button(action: save) {
+            Text("Planla")
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .foregroundStyle(Makam.bg)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 15)
+                .background(RoundedRectangle(cornerRadius: 14).fill(Makam.gold))
+        }
+        .padding(.top, 6)
+    }
+
+    private var inputBackground: some View {
+        RoundedRectangle(cornerRadius: 10)
+            .fill(Color.white.opacity(0.05))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(Makam.gold.opacity(0.13), lineWidth: 0.5)
+            )
+    }
+
+    private func save() {
+        task.date = Self.isoFormatter.string(from: selectedDate)
+        task.timePeriod = selectedPeriod
+        try? context.save()
         dismiss()
     }
 }

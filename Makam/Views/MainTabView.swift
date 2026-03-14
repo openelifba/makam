@@ -33,7 +33,7 @@ struct MainTabView: View {
                 .tabItem { Label("Praying Times", systemImage: "moon.stars") }
                 .tag(AppTab.prayerTimes)
 
-            SettingsView()
+            SettingsView(selectedTab: $selectedTab)
                 .tabItem { Label("Settings", systemImage: "gearshape") }
                 .tag(AppTab.settings)
         }
