@@ -431,6 +431,8 @@ private struct AddTaskSheet: View {
     @State private var selectedPeriod: TimePeriod = .ogle
     @State private var selectedDuration = 30
     @State private var notes = ""
+    @State private var selectedRepeat: RepeatRule = .none
+    @State private var customInterval = 2
 
     private static let isoFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -461,6 +463,7 @@ private struct AddTaskSheet: View {
                     dateField
                     timePeriodField
                     durationField
+                    repeatField
                     notesField
                     saveButton
                 }
@@ -570,6 +573,76 @@ private struct AddTaskSheet: View {
         }
     }
 
+    private var repeatField: some View {
+        SheetFormField(label: "Tekrar") {
+            VStack(spacing: 0) {
+                Menu {
+                    ForEach(RepeatRule.allCases, id: \.self) { rule in
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.15)) { selectedRepeat = rule }
+                        } label: {
+                            if selectedRepeat == rule {
+                                Label(rule.rawValue, systemImage: "checkmark")
+                            } else {
+                                Text(rule.rawValue)
+                            }
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Text(selectedRepeat.rawValue)
+                            .font(.system(size: 15, design: .rounded))
+                            .foregroundStyle(Makam.sand)
+                        Spacer()
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Makam.sandDim)
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 13)
+                    .background(inputBackground)
+                }
+                .buttonStyle(.plain)
+
+                if selectedRepeat == .custom {
+                    HStack {
+                        Text("Her")
+                            .font(.system(size: 14, design: .rounded))
+                            .foregroundStyle(Makam.sandDim)
+                        Spacer()
+                        HStack(spacing: 16) {
+                            Button {
+                                if customInterval > 2 { customInterval -= 1 }
+                            } label: {
+                                Image(systemName: "minus.circle.fill")
+                                    .font(.system(size: 22))
+                                    .foregroundStyle(customInterval > 2 ? Makam.gold : Makam.sandDim.opacity(0.4))
+                            }
+                            .buttonStyle(.plain)
+                            Text("\(customInterval) günde bir")
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundStyle(Makam.sand)
+                                .frame(minWidth: 80, alignment: .center)
+                            Button {
+                                if customInterval < 30 { customInterval += 1 }
+                            } label: {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 22))
+                                    .foregroundStyle(customInterval < 30 ? Makam.gold : Makam.sandDim.opacity(0.4))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .background(inputBackground)
+                    .padding(.top, 6)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+            }
+        }
+    }
+
     private var notesField: some View {
         SheetFormField(label: "Notlar (isteğe bağlı)") {
             ZStack(alignment: .topLeading) {
@@ -633,16 +706,30 @@ private struct AddTaskSheet: View {
 
     private func save() {
         guard isTitleValid else { return }
-        let dateString = Self.isoFormatter.string(from: selectedDate)
         let trimmedNotes = notes.trimmingCharacters(in: .whitespaces)
+        let cleanNotes = trimmedNotes.isEmpty ? nil : trimmedNotes
+        let cleanTitle = title.trimmingCharacters(in: .whitespaces)
         let repo = TaskRepository(context: context)
-        try? repo.create(
-            title: title.trimmingCharacters(in: .whitespaces),
-            date: dateString,
-            timePeriod: selectedPeriod,
-            duration: selectedDuration,
-            notes: trimmedNotes.isEmpty ? nil : trimmedNotes
-        )
+        if selectedRepeat == .none {
+            let dateString = Self.isoFormatter.string(from: selectedDate)
+            try? repo.create(
+                title: cleanTitle,
+                date: dateString,
+                timePeriod: selectedPeriod,
+                duration: selectedDuration,
+                notes: cleanNotes
+            )
+        } else {
+            try? repo.createRepeating(
+                title: cleanTitle,
+                startDate: selectedDate,
+                timePeriod: selectedPeriod,
+                duration: selectedDuration,
+                notes: cleanNotes,
+                repeatRule: selectedRepeat,
+                repeatInterval: customInterval
+            )
+        }
         dismiss()
     }
 }
@@ -660,6 +747,8 @@ private struct EditTaskSheet: View {
     @State private var selectedPeriod: TimePeriod
     @State private var selectedDuration: Int
     @State private var notes: String
+    @State private var selectedRepeat: RepeatRule
+    @State private var customInterval: Int
 
     private static let isoFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -674,6 +763,8 @@ private struct EditTaskSheet: View {
         _selectedPeriod = State(initialValue: task.timePeriod)
         _selectedDuration = State(initialValue: task.duration)
         _notes = State(initialValue: task.notes ?? "")
+        _selectedRepeat = State(initialValue: task.repeatRule)
+        _customInterval = State(initialValue: max(2, task.repeatInterval))
     }
 
     private var isTitleValid: Bool {
@@ -692,6 +783,7 @@ private struct EditTaskSheet: View {
                     dateField
                     timePeriodField
                     durationField
+                    repeatField
                     notesField
                     saveButton
                 }
@@ -789,6 +881,76 @@ private struct EditTaskSheet: View {
         }
     }
 
+    private var repeatField: some View {
+        SheetFormField(label: "Tekrar") {
+            VStack(spacing: 0) {
+                Menu {
+                    ForEach(RepeatRule.allCases, id: \.self) { rule in
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.15)) { selectedRepeat = rule }
+                        } label: {
+                            if selectedRepeat == rule {
+                                Label(rule.rawValue, systemImage: "checkmark")
+                            } else {
+                                Text(rule.rawValue)
+                            }
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Text(selectedRepeat.rawValue)
+                            .font(.system(size: 15, design: .rounded))
+                            .foregroundStyle(Makam.sand)
+                        Spacer()
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Makam.sandDim)
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 13)
+                    .background(inputBackground)
+                }
+                .buttonStyle(.plain)
+
+                if selectedRepeat == .custom {
+                    HStack {
+                        Text("Her")
+                            .font(.system(size: 14, design: .rounded))
+                            .foregroundStyle(Makam.sandDim)
+                        Spacer()
+                        HStack(spacing: 16) {
+                            Button {
+                                if customInterval > 2 { customInterval -= 1 }
+                            } label: {
+                                Image(systemName: "minus.circle.fill")
+                                    .font(.system(size: 22))
+                                    .foregroundStyle(customInterval > 2 ? Makam.gold : Makam.sandDim.opacity(0.4))
+                            }
+                            .buttonStyle(.plain)
+                            Text("\(customInterval) günde bir")
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundStyle(Makam.sand)
+                                .frame(minWidth: 80, alignment: .center)
+                            Button {
+                                if customInterval < 30 { customInterval += 1 }
+                            } label: {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 22))
+                                    .foregroundStyle(customInterval < 30 ? Makam.gold : Makam.sandDim.opacity(0.4))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .background(inputBackground)
+                    .padding(.top, 6)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+            }
+        }
+    }
+
     private var notesField: some View {
         SheetFormField(label: "Notlar (isteğe bağlı)") {
             ZStack(alignment: .topLeading) {
@@ -860,7 +1022,9 @@ private struct EditTaskSheet: View {
             timePeriod: selectedPeriod,
             duration: selectedDuration,
             notes: trimmedNotes.isEmpty ? nil : trimmedNotes,
-            isCompleted: task.isCompleted
+            isCompleted: task.isCompleted,
+            repeatRule: selectedRepeat,
+            repeatInterval: customInterval
         )
         dismiss()
     }

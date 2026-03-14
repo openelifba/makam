@@ -14,6 +14,17 @@ enum TimePeriod: String, Codable, CaseIterable {
     case yatsi  = "Yatsı"
 }
 
+// MARK: - RepeatRule
+
+enum RepeatRule: String, Codable, CaseIterable {
+    case none    = "Tekrar Yok"
+    case daily   = "Her Gün"
+    case weekly  = "Her Hafta"
+    case monthly = "Her Ay"
+    case yearly  = "Her Yıl"
+    case custom  = "Özel"
+}
+
 // MARK: - HabitTask
 
 /// A single habit task associated with a prayer period.
@@ -41,6 +52,12 @@ final class HabitTask {
     /// Whether the task has been completed. Defaults to `false`.
     var isCompleted: Bool
 
+    /// How this task repeats. Defaults to `.none`.
+    var repeatRule: RepeatRule
+
+    /// Repeat interval in days — used only when `repeatRule == .custom`.
+    var repeatInterval: Int
+
     init(
         id: String = UUID().uuidString,
         title: String,
@@ -48,7 +65,9 @@ final class HabitTask {
         timePeriod: TimePeriod,
         duration: Int,
         notes: String? = nil,
-        isCompleted: Bool = false
+        isCompleted: Bool = false,
+        repeatRule: RepeatRule = .none,
+        repeatInterval: Int = 1
     ) {
         self.id = id
         self.title = title
@@ -57,5 +76,7 @@ final class HabitTask {
         self.duration = duration
         self.notes = notes
         self.isCompleted = isCompleted
+        self.repeatRule = repeatRule
+        self.repeatInterval = repeatInterval
     }
 }
