@@ -36,8 +36,25 @@ enum PrayerCalculator {
         let passedPrayers = prayers.filter { $0.time <= referenceDate }
 
         guard let current = passedPrayers.last else {
-            // Before Imsak — treat previous day's Yatsı as current (or return nil)
-            return nil
+            // Before Imsak: synthesise yesterday's Yatsı so the card stays visible.
+            // Inverse of syntheticTomorrowImsak: Imsak ≈ Yatsı + 8 h  →  Yatsı ≈ Imsak − 8 h
+            let imsak      = prayers[0]
+            let yatsiMeta  = PrayerMetadata.catalogue[5]
+            let yatsiTime  = imsak.time.addingTimeInterval(-8 * 3600)
+            let syntheticYatsi = Prayer(
+                id:         5,
+                name:       yatsiMeta.name,
+                arabicName: yatsiMeta.arabicName,
+                symbol:     yatsiMeta.symbol,
+                time:       yatsiTime
+            )
+            return PrayerContext(
+                current:       syntheticYatsi,
+                next:          imsak,
+                windowStart:   yatsiTime,
+                windowEnd:     imsak.time,
+                countdownDate: imsak.time
+            )
         }
 
         let currentIndex = current.id   // 0–5
