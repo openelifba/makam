@@ -18,6 +18,8 @@ targets:
         ENABLE_PREVIEWS: YES
         SWIFT_VERSION: 5.0
         CURRENT_PROJECT_VERSION: $(CI_BUILD_NUMBER)
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: RAYY6M6L8W
     entitlements:
       path: Makam/Makam.entitlements
       contents:
