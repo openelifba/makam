@@ -215,6 +215,10 @@ enum ImsakiyemService {
             let response = try JSONDecoder().decode(ImsakiyemResponse<T>.self, from: data)
             return response.data
         } catch {
+            // Log the raw response so the actual JSON shape can be inspected.
+            if let raw = String(data: data, encoding: .utf8) {
+                print("[ImsakiyemService] Decoding failed for \(url)\nRaw response: \(raw)\nError: \(error)")
+            }
             throw ImsakiyemServiceError.decoding(error)
         }
     }
