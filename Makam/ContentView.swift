@@ -3,7 +3,6 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject var viewModel: PrayerViewModel
 
-    @State private var showSettings = false
     @State private var showWeatherSheet = false
 
     var body: some View {
@@ -34,10 +33,6 @@ struct ContentView: View {
                 errorView(error)
             }
         }
-        .sheet(isPresented: $showSettings) {
-            SettingsView()
-                .environmentObject(viewModel)
-        }
         .sheet(isPresented: $showWeatherSheet) {
             if case .loaded(let snapshot) = viewModel.weatherState {
                 WeatherDetailSheet(snapshot: snapshot, schedule: viewModel.schedule)
@@ -51,38 +46,17 @@ struct ContentView: View {
     // MARK: - Header
 
     private var headerView: some View {
-        ZStack {
-            // Centered logo + location name + weather chip
-            VStack(spacing: 8) {
-                Image("MakamLogo")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 60, height: 60)
-
-                HStack(spacing: 6) {
-                    Image(systemName: "location.fill")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Makam.gold)
-                    Text(viewModel.locationName)
-                        .font(.system(size: 18, weight: .regular, design: .rounded))
-                        .foregroundStyle(Makam.sand)
-                }
-
-                WeatherChip(state: viewModel.weatherState, showSheet: $showWeatherSheet)
+        VStack(spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "location.fill")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Makam.gold)
+                Text(viewModel.locationName)
+                    .font(.system(size: 18, weight: .regular, design: .rounded))
+                    .foregroundStyle(Makam.sand)
             }
 
-            // Settings button aligned to trailing edge
-            HStack {
-                Spacer()
-                Button {
-                    showSettings = true
-                } label: {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 20, weight: .light))
-                        .foregroundStyle(Makam.sandDim)
-                }
-                .padding(.trailing, 20)
-            }
+            WeatherChip(state: viewModel.weatherState, showSheet: $showWeatherSheet)
         }
     }
 
