@@ -307,6 +307,12 @@ private struct TaskCard: View {
     }()
 
     var body: some View {
+        if task.modelContext == nil { return AnyView(EmptyView()) }
+        return AnyView(taskContent)
+    }
+
+    @ViewBuilder
+    private var taskContent: some View {
         HStack(spacing: 12) {
             completionButton
             VStack(alignment: .leading, spacing: 3) {

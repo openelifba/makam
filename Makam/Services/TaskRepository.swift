@@ -185,8 +185,8 @@ final class TaskRepository {
 
     /// Removes every task that belongs to the same repeat series.
     func deleteAllInSeries(seriesID: String) throws {
-        let optionalSeriesID: String? = seriesID
-        let predicate = #Predicate<HabitTask> { $0.seriesID == optionalSeriesID }
+        let sid = seriesID
+        let predicate = #Predicate<HabitTask> { $0.seriesID == sid }
         let descriptor = FetchDescriptor<HabitTask>(predicate: predicate)
         let tasks = try context.fetch(descriptor)
         tasks.forEach { context.delete($0) }
