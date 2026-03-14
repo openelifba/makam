@@ -14,20 +14,19 @@ private enum MakamStyle {
 // MARK: - Settings Root
 
 struct SettingsView: View {
-    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var prayerViewModel: PrayerViewModel
     @StateObject private var vm = SettingsViewModel()
+    @State private var navigationPath = NavigationPath()
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             CountryPickerView(
                 vm: vm,
                 onSave: {
                     vm.saveSettings()
                     Task { await prayerViewModel.fetchPrayers() }
-                    dismiss()
-                },
-                onCancel: { dismiss() }
+                    navigationPath = NavigationPath()
+                }
             )
         }
         .task { await vm.loadCountries() }
@@ -39,7 +38,6 @@ struct SettingsView: View {
 private struct CountryPickerView: View {
     @ObservedObject var vm: SettingsViewModel
     let onSave: () -> Void
-    let onCancel: () -> Void
 
     @State private var searchText = ""
 
@@ -91,12 +89,6 @@ private struct CountryPickerView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(MakamStyle.bg, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("İptal", action: onCancel)
-                    .foregroundStyle(MakamStyle.gold)
-            }
-        }
         .errorBanner(vm.errorMessage)
     }
 }

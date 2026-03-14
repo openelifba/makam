@@ -7,7 +7,7 @@ struct MakamApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MainTabView()
                 .environmentObject(viewModel)
                 .task {
                     await viewModel.fetchPrayers()
