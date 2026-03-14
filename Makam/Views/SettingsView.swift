@@ -17,6 +17,7 @@ struct SettingsView: View {
     @EnvironmentObject var prayerViewModel: PrayerViewModel
     @StateObject private var vm = SettingsViewModel()
     @State private var navigationPath = NavigationPath()
+    @Binding var selectedTab: AppTab
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -26,6 +27,7 @@ struct SettingsView: View {
                     vm.saveSettings()
                     Task { await prayerViewModel.fetchPrayers() }
                     navigationPath = NavigationPath()
+                    selectedTab = .prayerTimes
                 }
             )
         }
