@@ -67,6 +67,10 @@ final class HabitTask {
     /// How often this task repeats. Defaults to `.none` (no repeat).
     var repeatFrequency: RepeatFrequency = RepeatFrequency.none
 
+    /// Shared UUID string that links all instances of the same repeat series.
+    /// `nil` for tasks that are not part of a recurring series.
+    var seriesID: String?
+
     init(
         id: String = UUID().uuidString,
         title: String,
@@ -75,7 +79,8 @@ final class HabitTask {
         duration: Int,
         notes: String? = nil,
         isCompleted: Bool = false,
-        repeatFrequency: RepeatFrequency = .none
+        repeatFrequency: RepeatFrequency = .none,
+        seriesID: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -85,5 +90,6 @@ final class HabitTask {
         self.notes = notes
         self.isCompleted = isCompleted
         self.repeatFrequency = repeatFrequency
+        self.seriesID = seriesID
     }
 }

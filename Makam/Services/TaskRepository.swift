@@ -89,6 +89,7 @@ final class TaskRepository {
             component = .year
         }
 
+        let seriesID = UUID().uuidString
         for offset in offsets {
             guard let d = cal.date(byAdding: component, value: offset, to: startDate) else { continue }
             let task = HabitTask(
@@ -97,7 +98,8 @@ final class TaskRepository {
                 timePeriod: timePeriod,
                 duration: duration,
                 notes: notes,
-                repeatFrequency: repeatFrequency
+                repeatFrequency: repeatFrequency,
+                seriesID: seriesID
             )
             context.insert(task)
         }
@@ -177,6 +179,15 @@ final class TaskRepository {
     /// Removes all tasks for a given date.
     func deleteAll(for date: String) throws {
         let tasks = try tasks(for: date)
+        tasks.forEach { context.delete($0) }
+        try context.save()
+    }
+
+    /// Removes every task that belongs to the same repeat series.
+    func deleteAllInSeries(seriesID: String) throws {
+        let predicate = #Predicate<HabitTask> { $0.seriesID == seriesID }
+        let descriptor = FetchDescriptor<HabitTask>(predicate: predicate)
+        let tasks = try context.fetch(descriptor)
         tasks.forEach { context.delete($0) }
         try context.save()
     }

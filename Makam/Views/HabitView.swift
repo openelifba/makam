@@ -298,6 +298,7 @@ private struct TaskCard: View {
     @State private var showEditSheet = false
     @State private var showRescheduleSheet = false
     @State private var showDeleteConfirm = false
+    @State private var showSeriesDeleteDialog = false
 
     private static let isoFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -350,7 +351,13 @@ private struct TaskCard: View {
             Button("Yeniden Planla") { showRescheduleSheet = true }
             Button("Yarına Planla") { rescheduleForTomorrow() }
             Button("Düzenle") { showEditSheet = true }
-            Button("Sil", role: .destructive) { showDeleteConfirm = true }
+            Button("Sil", role: .destructive) {
+                if task.seriesID != nil {
+                    showSeriesDeleteDialog = true
+                } else {
+                    showDeleteConfirm = true
+                }
+            }
             Button("İptal", role: .cancel) {}
         }
         .alert("Görevi Sil", isPresented: $showDeleteConfirm) {
@@ -358,6 +365,13 @@ private struct TaskCard: View {
             Button("İptal", role: .cancel) {}
         } message: {
             Text("\"\(task.title)\" silinecek. Emin misiniz?")
+        }
+        .confirmationDialog("Tekrarlayan Görevi Sil", isPresented: $showSeriesDeleteDialog, titleVisibility: .visible) {
+            Button("Yalnızca Bunu Sil", role: .destructive) { deleteTask() }
+            Button("Tüm Tekrarları Sil", role: .destructive) { deleteAllInSeries() }
+            Button("İptal", role: .cancel) {}
+        } message: {
+            Text("Bu görevi mi, yoksa tüm tekrarlayan örnekleri mi silmek istiyorsunuz?")
         }
         .sheet(isPresented: $showEditSheet) {
             EditTaskSheet(task: task)
@@ -420,6 +434,12 @@ private struct TaskCard: View {
     private func deleteTask() {
         let repo = TaskRepository(context: context)
         try? repo.delete(task)
+    }
+
+    private func deleteAllInSeries() {
+        guard let sid = task.seriesID else { return }
+        let repo = TaskRepository(context: context)
+        try? repo.deleteAllInSeries(seriesID: sid)
     }
 }
 
