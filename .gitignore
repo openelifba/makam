@@ -8,3 +8,12 @@ DerivedData/
 # Project configuration
 *.swp
 *.lock
+
+# Credentials & secrets (preventive)
+*.mobileprovision
+*.p12
+*.cer
+*.key
+.env
+.env.local
+Secrets.swift
