@@ -22,6 +22,3 @@ targets:
         DEVELOPMENT_TEAM: RAYY6M6L8W
     entitlements:
       path: Makam/Makam.entitlements
-      contents:
-        com.apple.security.application-groups:
-          - group.com.makam.shared
