@@ -63,21 +63,21 @@ struct ContentView: View {
     // MARK: - Active Prayer Card
 
     private func activePrayerCard(ctx: PrayerContext) -> some View {
-        VStack(spacing: 16) {
-            ZStack {
-                PrayerProgressRing(
-                    progress: ctx.elapsedFraction(),
-                    diameter: 180,
-                    lineWidth: 6
+        VStack(spacing: 20) {
+            if let schedule = viewModel.schedule {
+                SunArcView(
+                    prayers: schedule.prayers,
+                    currentPrayerID: ctx.current.id,
+                    locationName: viewModel.locationName
                 )
+            }
 
-                VStack(spacing: 8) {
-                    PrayerNameLabel(name: ctx.current.name, size: 28)
+            VStack(spacing: 4) {
+                PrayerNameLabel(name: ctx.current.name, size: 26)
 
-                    Text(timeString(ctx.current.time))
-                        .font(.system(size: 20, weight: .light, design: .rounded))
-                        .foregroundStyle(Makam.sandDim)
-                }
+                Text(timeString(ctx.current.time))
+                    .font(.system(size: 16, weight: .light, design: .rounded))
+                    .foregroundStyle(Makam.sandDim)
             }
 
             VStack(spacing: 4) {
@@ -171,21 +171,102 @@ enum Makam {
 
 // MARK: - Shared Components
 
-struct PrayerProgressRing: View {
-    let progress: Double
-    let diameter: CGFloat
-    let lineWidth: CGFloat
+/// Sun-arc visualization showing all prayer times as nodes on the day's arc.
+/// Past prayers are shown as solid gold dots, the current prayer as a hollow
+/// white ring, and future prayers as dim white dots — mirroring the sun's path.
+struct SunArcView: View {
+    let prayers: [Prayer]
+    let currentPrayerID: Int
+    let locationName: String
+
+    private var firstTime: Date { prayers.first?.time ?? Date() }
+    private var lastTime:  Date { prayers.last?.time  ?? Date() }
+
+    private func timeFraction(_ date: Date) -> Double {
+        let total = lastTime.timeIntervalSince(firstTime)
+        guard total > 0 else { return 0 }
+        return max(0, min(1, date.timeIntervalSince(firstTime) / total))
+    }
+
+    /// Point on a quadratic bezier: start=(0,h), control=(w/2, topPad), end=(w,h).
+    private func arcPoint(t: Double, w: CGFloat, h: CGFloat, topPad: CGFloat = 10) -> CGPoint {
+        let t = CGFloat(t)
+        return CGPoint(
+            x: t * w,
+            y: (1-t)*(1-t)*h + 2*t*(1-t)*topPad + t*t*h
+        )
+    }
 
     var body: some View {
-        ZStack {
-            Circle()
-                .stroke(Makam.goldDim, lineWidth: lineWidth)
-            Circle()
-                .trim(from: 0, to: CGFloat(progress))
-                .stroke(Makam.gold, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-                .rotationEffect(.degrees(-90))
+        VStack(spacing: 10) {
+            Canvas { ctx, size in
+                let now     = timeFraction(Date())
+                let steps   = 200
+                let gold    = Color(red: 0.780, green: 0.620, blue: 0.340)
+
+                // ── Full arc (dim background) ──────────────────────────────
+                var fullPath = Path()
+                fullPath.move(to: arcPoint(t: 0, w: size.width, h: size.height))
+                for i in 1...steps {
+                    fullPath.addLine(to: arcPoint(t: Double(i)/Double(steps), w: size.width, h: size.height))
+                }
+                ctx.stroke(fullPath, with: .color(.white.opacity(0.12)),
+                           style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+
+                // ── Elapsed arc (gold) ─────────────────────────────────────
+                let pastSteps = max(1, Int(now * Double(steps)))
+                var pastPath = Path()
+                pastPath.move(to: arcPoint(t: 0, w: size.width, h: size.height))
+                for i in 1...pastSteps {
+                    pastPath.addLine(to: arcPoint(t: Double(i)/Double(steps), w: size.width, h: size.height))
+                }
+                ctx.stroke(pastPath, with: .color(gold.opacity(0.75)),
+                           style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+
+                // ── Prayer nodes ───────────────────────────────────────────
+                for prayer in prayers {
+                    let frac      = timeFraction(prayer.time)
+                    let pt        = arcPoint(t: frac, w: size.width, h: size.height)
+                    let isCurrent = prayer.id == currentPrayerID
+                    let isPast    = prayer.time <= Date() && !isCurrent
+                    let r: CGFloat = isCurrent ? 7 : 5
+                    let rect = CGRect(x: pt.x - r, y: pt.y - r, width: r*2, height: r*2)
+
+                    if isCurrent {
+                        // Hollow ring — marks "now"
+                        ctx.fill(Path(ellipseIn: rect), with: .color(gold.opacity(0.20)))
+                        ctx.stroke(Path(ellipseIn: rect), with: .color(.white), lineWidth: 2.5)
+                    } else if isPast {
+                        ctx.fill(Path(ellipseIn: rect), with: .color(gold.opacity(0.90)))
+                    } else {
+                        ctx.fill(Path(ellipseIn: rect), with: .color(.white.opacity(0.55)))
+                    }
+                }
+            }
+            .frame(height: 110)
+            .padding(.horizontal, 16)
+
+            // ── "TODAY | Location" label ───────────────────────────────────
+            HStack(spacing: 6) {
+                Text("BUGÜN")
+                    .foregroundStyle(Makam.sandDim)
+                Rectangle()
+                    .fill(Makam.sandDim)
+                    .frame(width: 1, height: 10)
+                Image(systemName: "location.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Makam.gold)
+                Text(locationName)
+                    .foregroundStyle(Makam.gold)
+            }
+            .font(.system(size: 12, weight: .semibold, design: .rounded))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Makam.gold.opacity(0.40), lineWidth: 1)
+            )
         }
-        .frame(width: diameter, height: diameter)
     }
 }
 
