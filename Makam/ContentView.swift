@@ -46,15 +46,23 @@ struct ContentView: View {
     // MARK: - Header
 
     private var headerView: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 10) {
             HStack(spacing: 6) {
+                Text("BUGÜN")
+                    .foregroundStyle(Makam.sandDim)
+                Rectangle()
+                    .fill(Makam.sandDim)
+                    .frame(width: 1, height: 10)
                 Image(systemName: "location.fill")
-                    .font(.system(size: 13))
+                    .font(.system(size: 10))
                     .foregroundStyle(Makam.gold)
                 Text(viewModel.locationName)
-                    .font(.system(size: 18, weight: .regular, design: .rounded))
-                    .foregroundStyle(Makam.sand)
+                    .foregroundStyle(Makam.gold)
             }
+            .font(.system(size: 12, weight: .semibold, design: .rounded))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
+            .overlay(RoundedRectangle(cornerRadius: 20).stroke(Makam.gold.opacity(0.40), lineWidth: 1))
 
             WeatherChip(state: viewModel.weatherState, showSheet: $showWeatherSheet)
         }
@@ -67,8 +75,7 @@ struct ContentView: View {
             if let schedule = viewModel.schedule {
                 SunArcView(
                     prayers: schedule.prayers,
-                    currentPrayerID: ctx.current.id,
-                    locationName: viewModel.locationName
+                    currentPrayerID: ctx.current.id
                 )
             }
 
@@ -177,7 +184,6 @@ enum Makam {
 struct SunArcView: View {
     let prayers: [Prayer]
     let currentPrayerID: Int
-    let locationName: String
 
     private var firstTime: Date { prayers.first?.time ?? Date() }
     private var lastTime:  Date { prayers.last?.time  ?? Date() }
@@ -198,75 +204,61 @@ struct SunArcView: View {
     }
 
     var body: some View {
-        VStack(spacing: 10) {
-            Canvas { ctx, size in
-                let now     = timeFraction(Date())
-                let steps   = 200
-                let gold    = Color(red: 0.780, green: 0.620, blue: 0.340)
+        let sunFrac  = timeFraction(Date())
+        let minH: CGFloat = 55
+        let maxH: CGFloat = 130
+        let canvasH  = minH + (maxH - minH) * CGFloat(sin(max(0, min(1, sunFrac)) * .pi))
 
-                // ── Full arc (dim background) ──────────────────────────────
-                var fullPath = Path()
-                fullPath.move(to: arcPoint(t: 0, w: size.width, h: size.height))
-                for i in 1...steps {
-                    fullPath.addLine(to: arcPoint(t: Double(i)/Double(steps), w: size.width, h: size.height))
-                }
-                ctx.stroke(fullPath, with: .color(.white.opacity(0.12)),
-                           style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+        Canvas { ctx, size in
+            let steps = 200
+            let gold  = Color(red: 0.780, green: 0.620, blue: 0.340)
 
-                // ── Elapsed arc (gold) ─────────────────────────────────────
-                let pastSteps = max(1, Int(now * Double(steps)))
-                var pastPath = Path()
-                pastPath.move(to: arcPoint(t: 0, w: size.width, h: size.height))
-                for i in 1...pastSteps {
-                    pastPath.addLine(to: arcPoint(t: Double(i)/Double(steps), w: size.width, h: size.height))
-                }
-                ctx.stroke(pastPath, with: .color(gold.opacity(0.75)),
-                           style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+            // ── Full arc (dim background) ──────────────────────────────────
+            var fullPath = Path()
+            fullPath.move(to: arcPoint(t: 0, w: size.width, h: size.height))
+            for i in 1...steps {
+                fullPath.addLine(to: arcPoint(t: Double(i)/Double(steps), w: size.width, h: size.height))
+            }
+            ctx.stroke(fullPath, with: .color(.white.opacity(0.12)),
+                       style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
 
-                // ── Prayer nodes ───────────────────────────────────────────
-                for prayer in prayers {
-                    let frac      = timeFraction(prayer.time)
-                    let pt        = arcPoint(t: frac, w: size.width, h: size.height)
-                    let isCurrent = prayer.id == currentPrayerID
-                    let isPast    = prayer.time <= Date() && !isCurrent
-                    let r: CGFloat = isCurrent ? 7 : 5
-                    let rect = CGRect(x: pt.x - r, y: pt.y - r, width: r*2, height: r*2)
+            // ── Elapsed arc (gold, up to current time) ─────────────────────
+            let pastSteps = max(1, Int(sunFrac * Double(steps)))
+            var pastPath = Path()
+            pastPath.move(to: arcPoint(t: 0, w: size.width, h: size.height))
+            for i in 1...pastSteps {
+                pastPath.addLine(to: arcPoint(t: Double(i)/Double(steps), w: size.width, h: size.height))
+            }
+            ctx.stroke(pastPath, with: .color(gold.opacity(0.75)),
+                       style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
 
-                    if isCurrent {
-                        // Hollow ring — marks "now"
-                        ctx.fill(Path(ellipseIn: rect), with: .color(gold.opacity(0.20)))
-                        ctx.stroke(Path(ellipseIn: rect), with: .color(.white), lineWidth: 2.5)
-                    } else if isPast {
-                        ctx.fill(Path(ellipseIn: rect), with: .color(gold.opacity(0.90)))
-                    } else {
-                        ctx.fill(Path(ellipseIn: rect), with: .color(.white.opacity(0.55)))
-                    }
+            // ── Prayer nodes ───────────────────────────────────────────────
+            for prayer in prayers {
+                let frac   = timeFraction(prayer.time)
+                let pt     = arcPoint(t: frac, w: size.width, h: size.height)
+                let isPast = prayer.time <= Date()
+                let r: CGFloat = 5
+                let rect = CGRect(x: pt.x - r, y: pt.y - r, width: r*2, height: r*2)
+                if isPast {
+                    ctx.fill(Path(ellipseIn: rect), with: .color(gold.opacity(0.90)))
+                } else {
+                    ctx.fill(Path(ellipseIn: rect), with: .color(.white.opacity(0.55)))
                 }
             }
-            .frame(height: 110)
-            .padding(.horizontal, 16)
 
-            // ── "TODAY | Location" label ───────────────────────────────────
-            HStack(spacing: 6) {
-                Text("BUGÜN")
-                    .foregroundStyle(Makam.sandDim)
-                Rectangle()
-                    .fill(Makam.sandDim)
-                    .frame(width: 1, height: 10)
-                Image(systemName: "location.fill")
-                    .font(.system(size: 10))
-                    .foregroundStyle(Makam.gold)
-                Text(locationName)
-                    .foregroundStyle(Makam.gold)
+            // ── Sun position indicator (current moment on arc) ─────────────
+            if sunFrac > 0 && sunFrac < 1 {
+                let sunPt   = arcPoint(t: sunFrac, w: size.width, h: size.height)
+                let glowR: CGFloat = 11
+                let dotR:  CGFloat = 5
+                let glowRect = CGRect(x: sunPt.x - glowR, y: sunPt.y - glowR, width: glowR*2, height: glowR*2)
+                let dotRect  = CGRect(x: sunPt.x - dotR,  y: sunPt.y - dotR,  width: dotR*2,  height: dotR*2)
+                ctx.fill(Path(ellipseIn: glowRect), with: .color(gold.opacity(0.25)))
+                ctx.fill(Path(ellipseIn: dotRect),  with: .color(gold))
             }
-            .font(.system(size: 12, weight: .semibold, design: .rounded))
-            .padding(.horizontal, 14)
-            .padding(.vertical, 7)
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(Makam.gold.opacity(0.40), lineWidth: 1)
-            )
         }
+        .frame(height: canvasH)
+        .padding(.horizontal, 16)
     }
 }
 
