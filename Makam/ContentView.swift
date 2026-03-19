@@ -17,7 +17,7 @@ struct ContentView: View {
                 ProgressView()
                     .tint(Makam.gold)
             } else if let schedule = viewModel.schedule {
-                VStack(spacing: 24) {
+                VStack(spacing: 8) {
                     headerView
 
                     if let ctx = viewModel.context {
@@ -178,86 +178,131 @@ enum Makam {
 
 // MARK: - Shared Components
 
-/// Sun-arc visualization showing all prayer times as nodes on the day's arc.
-/// Past prayers are shown as solid gold dots, the current prayer as a hollow
-/// white ring, and future prayers as dim white dots — mirroring the sun's path.
+/// Gold-themed solar arc: full 24-hour x-axis, bold daytime arc, thick dim
+/// nighttime arc, prayer markers with labels, gold sun glow indicator.
 struct SunArcView: View {
     let prayers: [Prayer]
     let currentPrayerID: Int
 
-    private var firstTime: Date { prayers.first?.time ?? Date() }
-    private var lastTime:  Date { prayers.last?.time  ?? Date() }
+    private var sunriseTime: Date? { prayers.count > 1 ? prayers[1].time : nil }
+    private var sunsetTime:  Date? { prayers.count > 4 ? prayers[4].time : nil }
 
-    private func timeFraction(_ date: Date) -> Double {
-        let total = lastTime.timeIntervalSince(firstTime)
-        guard total > 0 else { return 0 }
-        return max(0, min(1, date.timeIntervalSince(firstTime) / total))
-    }
-
-    /// Point on a quadratic bezier: start=(0,h), control=(w/2, topPad), end=(w,h).
-    private func arcPoint(t: Double, w: CGFloat, h: CGFloat, topPad: CGFloat = 10) -> CGPoint {
-        let t = CGFloat(t)
-        return CGPoint(
-            x: t * w,
-            y: (1-t)*(1-t)*h + 2*t*(1-t)*topPad + t*t*h
-        )
+    private func altitude(at date: Date) -> Double {
+        guard let rise = sunriseTime, let set = sunsetTime else { return -0.1 }
+        let t = date.timeIntervalSince1970
+        let r = rise.timeIntervalSince1970
+        let s = set.timeIntervalSince1970
+        guard s > r else { return -0.1 }
+        return sin(.pi * (t - r) / (s - r))
     }
 
     var body: some View {
-        let sunFrac  = timeFraction(Date())
-        let minH: CGFloat = 55
-        let maxH: CGFloat = 130
-        let canvasH  = minH + (maxH - minH) * CGFloat(sin(max(0, min(1, sunFrac)) * .pi))
-
         Canvas { ctx, size in
-            let steps = 200
-            let gold  = Color(red: 0.780, green: 0.620, blue: 0.340)
+            let gold = Color(red: 0.780, green: 0.620, blue: 0.340)
+            let now  = Date()
+            let steps = 400
 
-            // ── Full arc (dim background) ──────────────────────────────────
-            var fullPath = Path()
-            fullPath.move(to: arcPoint(t: 0, w: size.width, h: size.height))
-            for i in 1...steps {
-                fullPath.addLine(to: arcPoint(t: Double(i)/Double(steps), w: size.width, h: size.height))
+            guard let rise = sunriseTime, let set = sunsetTime else { return }
+            let dayStart = Calendar.current.startOfDay(for: rise)
+            guard let dayEnd = Calendar.current.date(byAdding: .day, value: 1, to: dayStart) else { return }
+            let daySpan = dayEnd.timeIntervalSince(dayStart)
+            guard daySpan > 0 else { return }
+
+            let horizonY:  CGFloat = size.height * 0.55
+            let amplitude: CGFloat = size.height * 0.40
+
+            func xFor(_ date: Date) -> CGFloat {
+                CGFloat(max(0, min(1, date.timeIntervalSince(dayStart) / daySpan))) * size.width
             }
-            ctx.stroke(fullPath, with: .color(.white.opacity(0.12)),
-                       style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
-
-            // ── Elapsed arc (gold, up to current time) ─────────────────────
-            let pastSteps = max(1, Int(sunFrac * Double(steps)))
-            var pastPath = Path()
-            pastPath.move(to: arcPoint(t: 0, w: size.width, h: size.height))
-            for i in 1...pastSteps {
-                pastPath.addLine(to: arcPoint(t: Double(i)/Double(steps), w: size.width, h: size.height))
+            func yFor(_ alt: Double) -> CGFloat {
+                horizonY - CGFloat(alt) * amplitude
             }
-            ctx.stroke(pastPath, with: .color(gold.opacity(0.75)),
-                       style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
-
-            // ── Prayer nodes ───────────────────────────────────────────────
-            for prayer in prayers {
-                let frac   = timeFraction(prayer.time)
-                let pt     = arcPoint(t: frac, w: size.width, h: size.height)
-                let isPast = prayer.time <= Date()
-                let r: CGFloat = 5
-                let rect = CGRect(x: pt.x - r, y: pt.y - r, width: r*2, height: r*2)
-                if isPast {
-                    ctx.fill(Path(ellipseIn: rect), with: .color(gold.opacity(0.90)))
-                } else {
-                    ctx.fill(Path(ellipseIn: rect), with: .color(.white.opacity(0.55)))
-                }
+            let stepPt: (Int) -> CGPoint = { i in
+                let frac = Double(i) / Double(steps)
+                let t    = dayStart.timeIntervalSince1970 + frac * daySpan
+                return CGPoint(x: CGFloat(frac) * size.width,
+                               y: yFor(altitude(at: Date(timeIntervalSince1970: t))))
             }
 
-            // ── Sun position indicator (current moment on arc) ─────────────
-            if sunFrac > 0 && sunFrac < 1 {
-                let sunPt   = arcPoint(t: sunFrac, w: size.width, h: size.height)
-                let glowR: CGFloat = 11
-                let dotR:  CGFloat = 5
-                let glowRect = CGRect(x: sunPt.x - glowR, y: sunPt.y - glowR, width: glowR*2, height: glowR*2)
-                let dotRect  = CGRect(x: sunPt.x - dotR,  y: sunPt.y - dotR,  width: dotR*2,  height: dotR*2)
-                ctx.fill(Path(ellipseIn: glowRect), with: .color(gold.opacity(0.25)))
-                ctx.fill(Path(ellipseIn: dotRect),  with: .color(gold))
+            let riseStep = Int(max(0, min(Double(steps), rise.timeIntervalSince(dayStart) / daySpan * Double(steps))))
+            let setStep  = Int(max(0, min(Double(steps), set.timeIntervalSince(dayStart)  / daySpan * Double(steps))))
+            let riseX = xFor(rise)
+            let setX  = xFor(set)
+            let noonX = (riseX + setX) / 2
+            let noonY = yFor(1.0)
+
+            // ── Horizon line ──────────────────────────────────────────────────
+            var hl = Path()
+            hl.move(to: CGPoint(x: 0, y: horizonY))
+            hl.addLine(to: CGPoint(x: size.width, y: horizonY))
+            ctx.stroke(hl, with: .color(gold.opacity(0.15)), lineWidth: 0.5)
+
+            // ── Warm fill under daytime arc ───────────────────────────────────
+            if riseStep < setStep {
+                var fill = Path()
+                fill.move(to: CGPoint(x: riseX, y: horizonY))
+                for i in riseStep...setStep { fill.addLine(to: stepPt(i)) }
+                fill.addLine(to: CGPoint(x: setX, y: horizonY))
+                fill.closeSubpath()
+                ctx.fill(fill, with: .linearGradient(
+                    Gradient(colors: [gold.opacity(0.18), .clear]),
+                    startPoint: CGPoint(x: noonX, y: noonY),
+                    endPoint:   CGPoint(x: noonX, y: horizonY)))
             }
+
+            // ── Arc ───────────────────────────────────────────────────────────
+            // Nighttime before sunrise — thick, dim
+            if riseStep > 0 {
+                var p = Path(); p.move(to: stepPt(0))
+                for i in 1...riseStep { p.addLine(to: stepPt(i)) }
+                ctx.stroke(p, with: .color(gold.opacity(0.28)),
+                           style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
+            }
+            // Daytime — bold, bright gold + soft glow pass
+            if riseStep < setStep {
+                var p = Path(); p.move(to: stepPt(riseStep))
+                for i in (riseStep + 1)...setStep { p.addLine(to: stepPt(i)) }
+                // Glow
+                ctx.stroke(p, with: .color(gold.opacity(0.18)),
+                           style: StrokeStyle(lineWidth: 12, lineCap: .round, lineJoin: .round))
+                // Bold arc
+                ctx.stroke(p, with: .color(gold.opacity(0.92)),
+                           style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+            }
+            // Nighttime after sunset — thick, dim
+            if setStep < steps {
+                var p = Path(); p.move(to: stepPt(setStep))
+                for i in (setStep + 1)...steps { p.addLine(to: stepPt(i)) }
+                ctx.stroke(p, with: .color(gold.opacity(0.28)),
+                           style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
+            }
+
+            // ── Prayer time markers (skip active — sun dot marks current position) ──
+            for prayer in prayers where prayer.id != currentPrayerID {
+                let px       = xFor(prayer.time)
+                let pAlt     = altitude(at: prayer.time)
+                let py       = yFor(pAlt)
+                let isPast   = prayer.time < now
+
+                let dotR: CGFloat = 2.5
+                let dotColor: Color = isPast ? gold.opacity(0.55) : Color.white.opacity(0.30)
+
+                ctx.fill(Path(ellipseIn: CGRect(x: px - dotR, y: py - dotR,
+                                                width: dotR * 2, height: dotR * 2)),
+                         with: .color(dotColor))
+            }
+
+            // ── Sun position dot (gold glow) ──────────────────────────────────
+            let sunX = xFor(now)
+            let sunY = yFor(altitude(at: now))
+            ctx.fill(Path(ellipseIn: CGRect(x: sunX - 14, y: sunY - 14, width: 28, height: 28)),
+                     with: .color(gold.opacity(0.15)))
+            ctx.fill(Path(ellipseIn: CGRect(x: sunX -  8, y: sunY -  8, width: 16, height: 16)),
+                     with: .color(gold.opacity(0.30)))
+            ctx.fill(Path(ellipseIn: CGRect(x: sunX -  4, y: sunY -  4, width:  8, height:  8)),
+                     with: .color(gold))
         }
-        .frame(height: canvasH)
+        .frame(height: 130)
         .padding(.horizontal, 16)
     }
 }

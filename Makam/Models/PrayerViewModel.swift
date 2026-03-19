@@ -1,5 +1,18 @@
 import Foundation
 import Combine
+import CoreLocation
+
+private enum PrayerViewModelError: LocalizedError {
+    case noLocationSelected
+    case geocodingFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .noLocationSelected: return "Şehir seçilmedi. Lütfen ayarlardan şehrinizi seçin."
+        case .geocodingFailed:    return "Seçilen şehrin koordinatları alınamadı."
+        }
+    }
+}
 
 @MainActor
 class PrayerViewModel: ObservableObject {
@@ -14,7 +27,6 @@ class PrayerViewModel: ObservableObject {
     @Published var weatherState: WeatherState = .idle
 
     private var timer: AnyCancellable?
-    private let city: DiyanetCity = .ankara
 
     init() {
         startTimer()
@@ -35,8 +47,7 @@ class PrayerViewModel: ObservableObject {
                 }
                 today = schedule
             } else {
-                // Fall back to Aladhan with default city (Ankara) if no district is saved yet
-                today = try await PrayerService.fetchAndCacheToday()
+                throw PrayerViewModelError.noLocationSelected
             }
 
             self.schedule = today
@@ -59,15 +70,33 @@ class PrayerViewModel: ObservableObject {
         }
 
         do {
-            let snapshot = try await WeatherService.fetchWeather(
-                latitude:  city.latitude,
-                longitude: city.longitude
-            )
+            let (lat, lon) = try await resolvedCoordinates()
+            let snapshot = try await WeatherService.fetchWeather(latitude: lat, longitude: lon)
             weatherState = .loaded(snapshot)
         } catch {
             // Only move to .failed if we have no data to show.
             if case .loading = weatherState {
                 weatherState = .failed
+            }
+        }
+    }
+
+    /// Geocodes the saved district/state/country names to coordinates.
+    /// Throws if no location is saved or geocoding fails.
+    private func resolvedCoordinates() async throws -> (Double, Double) {
+        let parts = [UserDefaults.standard.savedDistrictName,
+                     UserDefaults.standard.savedStateName,
+                     UserDefaults.standard.savedCountryName]
+            .compactMap { $0 }.filter { !$0.isEmpty }
+        guard !parts.isEmpty else { throw PrayerViewModelError.noLocationSelected }
+        let query = parts.joined(separator: ", ")
+        return try await withCheckedThrowingContinuation { continuation in
+            CLGeocoder().geocodeAddressString(query) { placemarks, _ in
+                if let coord = placemarks?.first?.location?.coordinate {
+                    continuation.resume(returning: (coord.latitude, coord.longitude))
+                } else {
+                    continuation.resume(throwing: PrayerViewModelError.geocodingFailed)
+                }
             }
         }
     }
