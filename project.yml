@@ -1,6 +1,6 @@
 name: Makam
 options:
-  bundleIdPrefix: com.makam
+  bundleIdPrefix: com.yaysoftwares
 targets:
   Makam:
     type: application
@@ -13,11 +13,11 @@ targets:
     settings:
       base:
         INFOPLIST_FILE: Makam/Info.plist
-        PRODUCT_BUNDLE_IDENTIFIER: com.makam.app
+        PRODUCT_BUNDLE_IDENTIFIER: com.yaysoftwares.makam
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_PREVIEWS: YES
         SWIFT_VERSION: 5.0
-        CURRENT_PROJECT_VERSION: $(CI_BUILD_NUMBER)
+        CURRENT_PROJECT_VERSION: 1
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: RAYY6M6L8W
     entitlements:
