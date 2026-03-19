@@ -46,19 +46,19 @@ struct WeatherChip: View {
         HStack(spacing: 4) {
             Image(systemName: weather.sfSymbol)
                 .font(.system(size: 14, weight: .regular))
-                .foregroundStyle(Makam.sandDim.opacity(0.75))
+                .foregroundStyle(Makam.sand)
 
             Text("\(weather.temperature)°")
                 .font(.system(size: 14, weight: .regular, design: .rounded))
-                .foregroundStyle(Makam.sandDim.opacity(0.75))
+                .foregroundStyle(Makam.sand)
 
             Text("·")
                 .font(.system(size: 12))
-                .foregroundStyle(Makam.sandDim.opacity(0.35))
+                .foregroundStyle(Makam.sandDim)
 
             Text(weather.shortCondition)
                 .font(.system(size: 14, weight: .regular, design: .rounded))
-                .foregroundStyle(Makam.sandDim.opacity(0.60))
+                .foregroundStyle(Makam.sand.opacity(0.80))
                 .lineLimit(1)
         }
         // Expand tap area to 44pt height for accessibility without visual change
