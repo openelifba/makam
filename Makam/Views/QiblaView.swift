@@ -9,13 +9,21 @@ final class QiblaViewModel: NSObject, ObservableObject, CLLocationManagerDelegat
     // Kaaba coordinates
     private let kaabaLat =  21.4225 * .pi / 180
     private let kaabaLon =  39.8262 * .pi / 180
+    private let kaabaLocation = CLLocation(latitude: 21.4225, longitude: 39.8262)
 
     private let manager = CLLocationManager()
+    private let geocoder = CLGeocoder()
 
     /// Bearing from user to Kaaba, measured clockwise from true north (degrees).
     @Published var qiblaBearing: Double = 0
     /// Device heading (true north = 0°). Nil until the first reading arrives.
     @Published var deviceHeading: Double? = nil
+    /// Compass heading accuracy in degrees. Negative = invalid/uncalibrated.
+    @Published var headingAccuracy: Double = -1
+    /// Distance from user to Kaaba in metres. Nil until location is known.
+    @Published var distanceToKaaba: Double? = nil
+    /// Human-readable city/country from reverse geocoding.
+    @Published var locationLabel: String? = nil
     @Published var status: Status = .idle
 
     enum Status {
@@ -60,13 +68,16 @@ final class QiblaViewModel: NSObject, ObservableObject, CLLocationManagerDelegat
         guard let loc = locations.last else { return }
         Task { @MainActor in
             self.qiblaBearing = self.bearing(from: loc.coordinate)
+            self.distanceToKaaba = loc.distance(from: self.kaabaLocation)
             if self.status == .locating { self.status = .ready }
+            self.reverseGeocode(loc)
         }
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
-        guard newHeading.headingAccuracy >= 0 else { return }
         Task { @MainActor in
+            self.headingAccuracy = newHeading.headingAccuracy
+            guard newHeading.headingAccuracy >= 0 else { return }
             self.deviceHeading = newHeading.trueHeading >= 0 ? newHeading.trueHeading : newHeading.magneticHeading
         }
     }
@@ -77,6 +88,16 @@ final class QiblaViewModel: NSObject, ObservableObject, CLLocationManagerDelegat
         status = .locating
         manager.startUpdatingLocation()
         manager.startUpdatingHeading()
+    }
+
+    private func reverseGeocode(_ location: CLLocation) {
+        geocoder.reverseGeocodeLocation(location) { [weak self] placemarks, _ in
+            guard let self, let place = placemarks?.first else { return }
+            let city    = place.locality ?? place.administrativeArea ?? ""
+            let country = place.country ?? ""
+            let label   = [city, country].filter { !$0.isEmpty }.joined(separator: ", ")
+            Task { @MainActor in self.locationLabel = label.isEmpty ? nil : label }
+        }
     }
 
     /// Great-circle bearing from `coord` to Kaaba (degrees, clockwise from true north).
@@ -102,6 +123,22 @@ struct QiblaView: View {
     private var needleAngle: Double {
         guard let heading = vm.deviceHeading else { return vm.qiblaBearing }
         return vm.qiblaBearing - heading
+    }
+
+    /// True when compass calibration is poor (accuracy > 20° or unknown).
+    private var needsCalibration: Bool {
+        vm.headingAccuracy < 0 || vm.headingAccuracy > 20
+    }
+
+    /// Distance formatted as "1 234 km" or "850 m".
+    private var distanceText: String? {
+        guard let d = vm.distanceToKaaba else { return nil }
+        if d >= 1000 {
+            let km = d / 1000
+            return String(format: km >= 10 ? "%.0f km" : "%.1f km", km)
+        } else {
+            return String(format: "%.0f m", d)
+        }
     }
 
     var body: some View {
@@ -183,7 +220,29 @@ struct QiblaView: View {
     }
 
     private var compassView: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 20) {
+            // Location label
+            if let label = vm.locationLabel {
+                Label(label, systemImage: "mappin.and.ellipse")
+                    .font(.subheadline)
+                    .foregroundColor(Makam.sand.opacity(0.75))
+            }
+
+            // Calibration warning
+            if needsCalibration {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                    Text("Pusula kalibrasyonu gerekiyor")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(Color.orange.opacity(0.12))
+                .cornerRadius(10)
+            }
+
             ZStack {
                 // Outer ring
                 Circle()
@@ -234,6 +293,17 @@ struct QiblaView: View {
                 Text("Kuzeyden saat yönünde")
                     .font(.caption)
                     .foregroundColor(Makam.sand.opacity(0.5))
+            }
+
+            // Distance to Kaaba
+            if let dist = distanceText {
+                HStack(spacing: 6) {
+                    Image(systemName: "figure.walk")
+                        .foregroundColor(Makam.gold.opacity(0.8))
+                    Text("Kabe'ye mesafe: \(dist)")
+                        .font(.subheadline)
+                        .foregroundColor(Makam.sand.opacity(0.75))
+                }
             }
         }
     }
