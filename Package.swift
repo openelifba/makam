@@ -21,6 +21,7 @@ let package = Package(
             sources: [
                 "Models",
                 "Services",
+                "Localization",
                 "MakamApp.swift",
                 "ContentView.swift"
             ]
