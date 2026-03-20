@@ -117,6 +117,7 @@ final class QiblaViewModel: NSObject, ObservableObject, CLLocationManagerDelegat
 
 struct QiblaView: View {
     @StateObject private var vm = QiblaViewModel()
+    @EnvironmentObject private var lang: LanguageManager
 
     /// Angle to rotate the compass rose so qibla arrow points at current direction.
     /// When deviceHeading is nil we show a static north-up compass.
@@ -170,10 +171,10 @@ struct QiblaView: View {
 
     private var header: some View {
         VStack(spacing: 4) {
-            Text("Kıble")
+            Text(lang.str(.tabQibla))
                 .font(.system(size: 28, weight: .bold))
                 .foregroundColor(Makam.sand)
-            Text("Kabe yönü")
+            Text(lang.str(.qiblaKabeDirection))
                 .font(.subheadline)
                 .foregroundColor(Makam.sand.opacity(0.5))
         }
@@ -184,7 +185,7 @@ struct QiblaView: View {
             Image(systemName: "location.circle")
                 .font(.system(size: 64))
                 .foregroundColor(Makam.gold.opacity(0.7))
-            Text("Kıble yönünü hesaplamak için\nkonum iznine ihtiyaç duyulmaktadır.")
+            Text(lang.str(.qiblaPermissionPrompt))
                 .multilineTextAlignment(.center)
                 .foregroundColor(Makam.sand.opacity(0.7))
                 .padding(.horizontal, 32)
@@ -196,11 +197,11 @@ struct QiblaView: View {
             Image(systemName: "location.slash")
                 .font(.system(size: 64))
                 .foregroundColor(Makam.gold.opacity(0.5))
-            Text("Konum izni verilmedi.\nAyarlar'dan izin veriniz.")
+            Text(lang.str(.qiblaPermissionDenied))
                 .multilineTextAlignment(.center)
                 .foregroundColor(Makam.sand.opacity(0.7))
                 .padding(.horizontal, 32)
-            Button("Ayarları Aç") {
+            Button(lang.str(.qiblaOpenSettings)) {
                 if let url = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(url)
                 }
@@ -213,7 +214,7 @@ struct QiblaView: View {
         VStack(spacing: 12) {
             ProgressView()
                 .tint(Makam.gold)
-            Text("Konum alınıyor…")
+            Text(lang.str(.qiblaLocating))
                 .foregroundColor(Makam.sand.opacity(0.6))
                 .font(.subheadline)
         }
@@ -233,7 +234,7 @@ struct QiblaView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundColor(.orange)
-                    Text("Pusula kalibrasyonu gerekiyor")
+                    Text(lang.str(.qiblaCalibration))
                         .font(.caption)
                         .foregroundColor(.orange)
                 }
@@ -290,7 +291,7 @@ struct QiblaView: View {
                 Text(String(format: "%.1f°", vm.qiblaBearing))
                     .font(.system(size: 36, weight: .bold, design: .rounded))
                     .foregroundColor(Makam.sand)
-                Text("Kuzeyden saat yönünde")
+                Text(lang.str(.qiblaBearingClockwise))
                     .font(.caption)
                     .foregroundColor(Makam.sand.opacity(0.5))
             }
@@ -300,7 +301,7 @@ struct QiblaView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "figure.walk")
                         .foregroundColor(Makam.gold.opacity(0.8))
-                    Text("Kabe'ye mesafe: \(dist)")
+                    Text(String(format: lang.str(.qiblaDistanceFormat), dist))
                         .font(.subheadline)
                         .foregroundColor(Makam.sand.opacity(0.75))
                 }
@@ -309,12 +310,18 @@ struct QiblaView: View {
     }
 
     private var cardinalLabels: some View {
-        ZStack {
-            ForEach(["K", "D", "G", "B"].indices, id: \.self) { i in
+        let cardinals = [
+            lang.str(.qiblaNorth),
+            lang.str(.qiblaEast),
+            lang.str(.qiblaSouth),
+            lang.str(.qiblaWest),
+        ]
+        return ZStack {
+            ForEach(cardinals.indices, id: \.self) { i in
                 let angle = Double(i) * 90
                 let rad   = (angle - 90) * .pi / 180
                 let r     = 118.0
-                Text(["K", "D", "G", "B"][i])
+                Text(cardinals[i])
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(i == 0 ? Makam.gold : Makam.sand.opacity(0.5))
                     .offset(x: r * cos(rad), y: r * sin(rad))

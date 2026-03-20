@@ -72,6 +72,17 @@ enum LK: String {
     case durationMinutes, duration1h, duration1h30m, duration2h, durationHours
     // Notifications
     case settingsNotifications, settingsAzanReminder, settingsAzanReminderDetail
+    case settingsNotificationPermissionMessage
+    // Qibla
+    case qiblaKabeDirection
+    case qiblaPermissionPrompt
+    case qiblaPermissionDenied
+    case qiblaOpenSettings
+    case qiblaLocating
+    case qiblaCalibration
+    case qiblaBearingClockwise
+    case qiblaDistanceFormat
+    case qiblaNorth, qiblaEast, qiblaSouth, qiblaWest
 }
 
 // MARK: - Language Manager
@@ -228,6 +239,20 @@ private let translations: [AppLanguage: T] = [
         .settingsNotifications: "Bildirimler",
         .settingsAzanReminder: "Ezan Bildirimi",
         .settingsAzanReminderDetail: "Her vakit ezanından 30 dakika önce bildirim al",
+        .settingsNotificationPermissionMessage: "Ezan hatırlatıcıları almak için Ayarlar'dan Makam için bildirimleri etkinleştirin.",
+
+        .qiblaKabeDirection: "Kabe yönü",
+        .qiblaPermissionPrompt: "Kıble yönünü hesaplamak için\nkonum iznine ihtiyaç duyulmaktadır.",
+        .qiblaPermissionDenied: "Konum izni verilmedi.\nAyarlar'dan izin veriniz.",
+        .qiblaOpenSettings: "Ayarları Aç",
+        .qiblaLocating: "Konum alınıyor…",
+        .qiblaCalibration: "Pusula kalibrasyonu gerekiyor",
+        .qiblaBearingClockwise: "Kuzeyden saat yönünde",
+        .qiblaDistanceFormat: "Kabe'ye mesafe: %@",
+        .qiblaNorth: "K",
+        .qiblaEast: "D",
+        .qiblaSouth: "G",
+        .qiblaWest: "B",
     ],
 
     // MARK: English
@@ -306,6 +331,20 @@ private let translations: [AppLanguage: T] = [
         .settingsNotifications: "Notifications",
         .settingsAzanReminder: "Azan Reminder",
         .settingsAzanReminderDetail: "Get notified 30 minutes before each prayer time",
+        .settingsNotificationPermissionMessage: "Please enable notifications for Makam in Settings to receive azan reminders.",
+
+        .qiblaKabeDirection: "Direction of Kaaba",
+        .qiblaPermissionPrompt: "Location access is required\nto calculate the Qibla direction.",
+        .qiblaPermissionDenied: "Location permission denied.\nPlease grant access in Settings.",
+        .qiblaOpenSettings: "Open Settings",
+        .qiblaLocating: "Getting location…",
+        .qiblaCalibration: "Compass calibration needed",
+        .qiblaBearingClockwise: "Clockwise from north",
+        .qiblaDistanceFormat: "Distance to Kaaba: %@",
+        .qiblaNorth: "N",
+        .qiblaEast: "E",
+        .qiblaSouth: "S",
+        .qiblaWest: "W",
     ],
 
     // MARK: Arabic
@@ -384,6 +423,20 @@ private let translations: [AppLanguage: T] = [
         .settingsNotifications: "الإشعارات",
         .settingsAzanReminder: "تذكير الأذان",
         .settingsAzanReminderDetail: "احصل على إشعار قبل 30 دقيقة من كل وقت صلاة",
+        .settingsNotificationPermissionMessage: "يُرجى تفعيل الإشعارات لتطبيق Makam من الإعدادات لاستقبال تذكيرات الأذان.",
+
+        .qiblaKabeDirection: "اتجاه الكعبة",
+        .qiblaPermissionPrompt: "يلزم الوصول إلى الموقع\nلحساب اتجاه القبلة.",
+        .qiblaPermissionDenied: "تم رفض إذن الموقع.\nيُرجى منح الإذن من الإعدادات.",
+        .qiblaOpenSettings: "فتح الإعدادات",
+        .qiblaLocating: "جارٍ تحديد الموقع…",
+        .qiblaCalibration: "معايرة البوصلة مطلوبة",
+        .qiblaBearingClockwise: "باتجاه عقارب الساعة من الشمال",
+        .qiblaDistanceFormat: "المسافة إلى الكعبة: %@",
+        .qiblaNorth: "ش",
+        .qiblaEast: "شق",
+        .qiblaSouth: "ج",
+        .qiblaWest: "غ",
     ],
 
     // MARK: German
@@ -462,6 +515,20 @@ private let translations: [AppLanguage: T] = [
         .settingsNotifications: "Benachrichtigungen",
         .settingsAzanReminder: "Gebetserinnerung",
         .settingsAzanReminderDetail: "30 Minuten vor jeder Gebetszeit benachrichtigt werden",
+        .settingsNotificationPermissionMessage: "Bitte aktivieren Sie Benachrichtigungen für Makam in den Einstellungen, um Gebetserinnerungen zu erhalten.",
+
+        .qiblaKabeDirection: "Kaaba-Richtung",
+        .qiblaPermissionPrompt: "Standortzugriff erforderlich\num die Qibla-Richtung zu berechnen.",
+        .qiblaPermissionDenied: "Standortberechtigung verweigert.\nBitte in den Einstellungen erteilen.",
+        .qiblaOpenSettings: "Einstellungen öffnen",
+        .qiblaLocating: "Standort wird ermittelt…",
+        .qiblaCalibration: "Kompasskalibrierung erforderlich",
+        .qiblaBearingClockwise: "Im Uhrzeigersinn von Nord",
+        .qiblaDistanceFormat: "Entfernung zur Kaaba: %@",
+        .qiblaNorth: "N",
+        .qiblaEast: "O",
+        .qiblaSouth: "S",
+        .qiblaWest: "W",
     ],
 
     // MARK: French
@@ -540,6 +607,20 @@ private let translations: [AppLanguage: T] = [
         .settingsNotifications: "Notifications",
         .settingsAzanReminder: "Rappel Azan",
         .settingsAzanReminderDetail: "Recevoir une notification 30 minutes avant chaque prière",
+        .settingsNotificationPermissionMessage: "Veuillez activer les notifications pour Makam dans les Paramètres pour recevoir les rappels d'Azan.",
+
+        .qiblaKabeDirection: "Direction de la Kaaba",
+        .qiblaPermissionPrompt: "L'accès à la localisation est requis\npour calculer la direction de la Qibla.",
+        .qiblaPermissionDenied: "Autorisation de localisation refusée.\nVeuillez l'accorder dans les Paramètres.",
+        .qiblaOpenSettings: "Ouvrir les Paramètres",
+        .qiblaLocating: "Localisation en cours…",
+        .qiblaCalibration: "Étalonnage de la boussole nécessaire",
+        .qiblaBearingClockwise: "Dans le sens horaire depuis le nord",
+        .qiblaDistanceFormat: "Distance jusqu'à la Kaaba : %@",
+        .qiblaNorth: "N",
+        .qiblaEast: "E",
+        .qiblaSouth: "S",
+        .qiblaWest: "O",
     ],
 
     // MARK: Russian
@@ -618,6 +699,20 @@ private let translations: [AppLanguage: T] = [
         .settingsNotifications: "Уведомления",
         .settingsAzanReminder: "Напоминание об азане",
         .settingsAzanReminderDetail: "Получать уведомление за 30 минут до намаза",
+        .settingsNotificationPermissionMessage: "Пожалуйста, включите уведомления для Makam в Настройках, чтобы получать напоминания об азане.",
+
+        .qiblaKabeDirection: "Направление на Каабу",
+        .qiblaPermissionPrompt: "Для определения направления Киблы\nнеобходим доступ к местоположению.",
+        .qiblaPermissionDenied: "Разрешение на геолокацию отклонено.\nПожалуйста, разрешите в Настройках.",
+        .qiblaOpenSettings: "Открыть настройки",
+        .qiblaLocating: "Определение местоположения…",
+        .qiblaCalibration: "Требуется калибровка компаса",
+        .qiblaBearingClockwise: "По часовой стрелке от севера",
+        .qiblaDistanceFormat: "Расстояние до Каабы: %@",
+        .qiblaNorth: "С",
+        .qiblaEast: "В",
+        .qiblaSouth: "Ю",
+        .qiblaWest: "З",
     ],
 
     // MARK: Indonesian
@@ -696,5 +791,19 @@ private let translations: [AppLanguage: T] = [
         .settingsNotifications: "Notifikasi",
         .settingsAzanReminder: "Pengingat Azan",
         .settingsAzanReminderDetail: "Dapatkan notifikasi 30 menit sebelum waktu shalat",
+        .settingsNotificationPermissionMessage: "Harap aktifkan notifikasi untuk Makam di Pengaturan untuk menerima pengingat azan.",
+
+        .qiblaKabeDirection: "Arah Kabah",
+        .qiblaPermissionPrompt: "Akses lokasi diperlukan\nuntuk menghitung arah Kiblat.",
+        .qiblaPermissionDenied: "Izin lokasi ditolak.\nHarap berikan izin di Pengaturan.",
+        .qiblaOpenSettings: "Buka Pengaturan",
+        .qiblaLocating: "Mendapatkan lokasi…",
+        .qiblaCalibration: "Kalibrasi kompas diperlukan",
+        .qiblaBearingClockwise: "Searah jarum jam dari utara",
+        .qiblaDistanceFormat: "Jarak ke Kabah: %@",
+        .qiblaNorth: "U",
+        .qiblaEast: "T",
+        .qiblaSouth: "S",
+        .qiblaWest: "B",
     ],
 ]
