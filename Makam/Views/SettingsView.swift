@@ -15,14 +15,16 @@ private enum MakamStyle {
 
 struct SettingsView: View {
     @EnvironmentObject var prayerViewModel: PrayerViewModel
+    @EnvironmentObject var lang: LanguageManager
     @StateObject private var vm = SettingsViewModel()
     @State private var navigationPath = NavigationPath()
     @Binding var selectedTab: AppTab
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            CountryPickerView(
+            SettingsRootView(
                 vm: vm,
+                navigationPath: $navigationPath,
                 onSave: {
                     vm.saveSettings()
                     Task { await prayerViewModel.fetchPrayers() }
@@ -35,9 +37,97 @@ struct SettingsView: View {
     }
 }
 
+// MARK: - Settings Root View
+
+private struct SettingsRootView: View {
+    @EnvironmentObject var lang: LanguageManager
+    @ObservedObject var vm: SettingsViewModel
+    @Binding var navigationPath: NavigationPath
+    let onSave: () -> Void
+
+    var body: some View {
+        ZStack {
+            MakamStyle.bg.ignoresSafeArea()
+
+            List {
+                // MARK: Language Section
+                Section {
+                    ForEach(AppLanguage.allCases) { language in
+                        Button {
+                            lang.setLanguage(language)
+                        } label: {
+                            HStack(spacing: 12) {
+                                Text(language.flag)
+                                    .font(.system(size: 22))
+                                Text(language.displayName)
+                                    .font(.system(size: 16, weight: .regular, design: .rounded))
+                                    .foregroundStyle(MakamStyle.sand)
+                                Spacer()
+                                if lang.current == language {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(MakamStyle.gold)
+                                        .font(.system(size: 14, weight: .semibold))
+                                }
+                            }
+                            .padding(.vertical, 2)
+                        }
+                        .buttonStyle(.plain)
+                        .listRowBackground(MakamStyle.rowBg)
+                        .listRowSeparatorTint(MakamStyle.sand.opacity(0.1))
+                    }
+                } header: {
+                    Text(lang.str(.settingsLanguage).uppercased())
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundStyle(MakamStyle.sandDim)
+                }
+
+                // MARK: Location Section
+                Section {
+                    NavigationLink(
+                        destination: CountryPickerView(vm: vm, onSave: onSave)
+                            .task { await vm.loadCountries() }
+                    ) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "location.fill")
+                                .font(.system(size: 14))
+                                .foregroundStyle(MakamStyle.gold)
+                                .frame(width: 22)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(lang.str(.settingsLocation))
+                                    .font(.system(size: 16, weight: .regular, design: .rounded))
+                                    .foregroundStyle(MakamStyle.sand)
+                                if let district = UserDefaults.standard.savedDistrictName, !district.isEmpty {
+                                    Text(district)
+                                        .font(.system(size: 12, weight: .light, design: .rounded))
+                                        .foregroundStyle(MakamStyle.sandDim)
+                                }
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                    .listRowBackground(MakamStyle.rowBg)
+                    .listRowSeparatorTint(MakamStyle.sand.opacity(0.1))
+                } header: {
+                    Text(lang.str(.settingsLocation).uppercased())
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundStyle(MakamStyle.sandDim)
+                }
+            }
+            .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .tint(MakamStyle.gold)
+        }
+        .navigationTitle(lang.str(.tabSettings))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(MakamStyle.bg, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
+    }
+}
+
 // MARK: - Country Picker
 
 private struct CountryPickerView: View {
+    @EnvironmentObject var lang: LanguageManager
     @ObservedObject var vm: SettingsViewModel
     let onSave: () -> Void
 
@@ -60,7 +150,7 @@ private struct CountryPickerView: View {
                     ProgressView()
                         .tint(MakamStyle.gold)
                 } else if vm.countries.isEmpty {
-                    EmptyStateView(message: "Ülke listesi yüklenemedi.")
+                    EmptyStateView(message: lang.str(.settingsCountryError))
                 } else {
                     List(filtered) { country in
                         NavigationLink(
@@ -82,12 +172,12 @@ private struct CountryPickerView: View {
                     }
                     .listStyle(.insetGrouped)
                     .scrollContentBackground(.hidden)
-                    .searchable(text: $searchText, prompt: "Ülke ara")
+                    .searchable(text: $searchText, prompt: lang.str(.settingsSearchCountry))
                     .tint(MakamStyle.gold)
                 }
             }
         }
-        .navigationTitle("Ülke Seç")
+        .navigationTitle(lang.str(.settingsSelectCountry))
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(MakamStyle.bg, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
@@ -98,6 +188,7 @@ private struct CountryPickerView: View {
 // MARK: - State / City Picker
 
 private struct StatePickerView: View {
+    @EnvironmentObject var lang: LanguageManager
     @ObservedObject var vm: SettingsViewModel
     let country: ImsakiyemCountry
     let onSave: () -> Void
@@ -121,7 +212,7 @@ private struct StatePickerView: View {
                     ProgressView()
                         .tint(MakamStyle.gold)
                 } else if vm.states.isEmpty {
-                    EmptyStateView(message: "Şehir listesi yüklenemedi.")
+                    EmptyStateView(message: lang.str(.settingsCityError))
                 } else {
                     List(filtered) { state in
                         NavigationLink(
@@ -143,12 +234,12 @@ private struct StatePickerView: View {
                     }
                     .listStyle(.insetGrouped)
                     .scrollContentBackground(.hidden)
-                    .searchable(text: $searchText, prompt: "Şehir ara")
+                    .searchable(text: $searchText, prompt: lang.str(.settingsSearchCity))
                     .tint(MakamStyle.gold)
                 }
             }
         }
-        .navigationTitle("Şehir Seç")
+        .navigationTitle(lang.str(.settingsSelectCity))
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(MakamStyle.bg, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
@@ -159,6 +250,7 @@ private struct StatePickerView: View {
 // MARK: - District Picker
 
 private struct DistrictPickerView: View {
+    @EnvironmentObject var lang: LanguageManager
     @ObservedObject var vm: SettingsViewModel
     let state: ImsakiyemState
     let onSave: () -> Void
@@ -182,7 +274,7 @@ private struct DistrictPickerView: View {
                     ProgressView()
                         .tint(MakamStyle.gold)
                 } else if vm.districts.isEmpty {
-                    EmptyStateView(message: "İlçe listesi yüklenemedi.")
+                    EmptyStateView(message: lang.str(.settingsDistrictError))
                 } else {
                     List(filtered) { district in
                         Button {
@@ -199,18 +291,18 @@ private struct DistrictPickerView: View {
                     }
                     .listStyle(.insetGrouped)
                     .scrollContentBackground(.hidden)
-                    .searchable(text: $searchText, prompt: "İlçe ara")
+                    .searchable(text: $searchText, prompt: lang.str(.settingsSearchDistrict))
                     .tint(MakamStyle.gold)
                 }
             }
         }
-        .navigationTitle("İlçe Seç")
+        .navigationTitle(lang.str(.settingsSelectDistrict))
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(MakamStyle.bg, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("Kaydet") { onSave() }
+                Button(lang.str(.settingsSave)) { onSave() }
                     .disabled(vm.selectedDistrict == nil)
                     .foregroundStyle(
                         vm.selectedDistrict != nil ? MakamStyle.gold : Color.gray

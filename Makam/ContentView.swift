@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var viewModel: PrayerViewModel
+    @EnvironmentObject var lang: LanguageManager
 
     @State private var showWeatherSheet = false
 
@@ -48,7 +49,7 @@ struct ContentView: View {
     private var headerView: some View {
         VStack(spacing: 10) {
             HStack(spacing: 6) {
-                Text("BUGÜN")
+                Text(lang.str(.contentToday))
                     .foregroundStyle(Makam.sandDim)
                 Rectangle()
                     .fill(Makam.sandDim)
@@ -80,7 +81,7 @@ struct ContentView: View {
             }
 
             VStack(spacing: 4) {
-                PrayerNameLabel(name: ctx.current.name, size: 26)
+                PrayerNameLabel(name: lang.prayerName(forId: ctx.current.id), size: 26)
 
                 Text(timeString(ctx.current.time))
                     .font(.system(size: 16, weight: .light, design: .rounded))
@@ -95,7 +96,7 @@ struct ContentView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "arrow.right")
                         .font(.system(size: 10))
-                    Text("\(ctx.next.name)'ya kadar")
+                    Text(lang.untilText(prayerName: lang.prayerName(forId: ctx.next.id)))
                 }
                 .font(.system(size: 14, weight: .regular, design: .rounded))
                 .foregroundStyle(Makam.sandDim)
@@ -115,7 +116,7 @@ struct ContentView: View {
                         .frame(width: 24)
                         .foregroundStyle(Makam.gold)
 
-                    Text(prayer.name)
+                    Text(lang.prayerName(forId: prayer.id))
                         .font(.system(size: 16, weight: .regular, design: .rounded))
                         .foregroundStyle(Makam.sand)
 
@@ -146,7 +147,7 @@ struct ContentView: View {
             Text(message)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(Makam.sand)
-            Button("Tekrar Dene") {
+            Button(lang.str(.contentRetry)) {
                 Task { await viewModel.fetchPrayers() }
             }
             .buttonStyle(.bordered)
