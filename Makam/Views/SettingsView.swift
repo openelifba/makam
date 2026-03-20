@@ -171,13 +171,13 @@ private struct SettingsRootView: View {
             .tint(MakamStyle.gold)
             .alert("", isPresented: $showPermissionAlert) {
                 Button("OK", role: .cancel) { }
-                Button("Settings") {
+                Button(lang.str(.tabSettings)) {
                     if let url = URL(string: UIApplication.openSettingsURLString) {
                         UIApplication.shared.open(url)
                     }
                 }
             } message: {
-                Text("Please enable notifications for Makam in Settings to receive azan reminders.")
+                Text(lang.str(.settingsNotificationPermissionMessage))
             }
         }
         .navigationTitle(lang.str(.tabSettings))
