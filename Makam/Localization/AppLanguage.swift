@@ -70,6 +70,8 @@ enum LK: String {
     case repeatNone, repeatDaily, repeatWeekly, repeatMonthly, repeatYearly, repeatCustom
     // Duration
     case durationMinutes, duration1h, duration1h30m, duration2h, durationHours
+    // Notifications
+    case settingsNotifications, settingsAzanReminder, settingsAzanReminderDetail
 }
 
 // MARK: - Language Manager
@@ -222,6 +224,10 @@ private let translations: [AppLanguage: T] = [
         .duration1h30m: "1s 30dk",
         .duration2h: "2s",
         .durationHours: "%ds",
+
+        .settingsNotifications: "Bildirimler",
+        .settingsAzanReminder: "Ezan Bildirimi",
+        .settingsAzanReminderDetail: "Her vakit ezanından 30 dakika önce bildirim al",
     ],
 
     // MARK: English
@@ -296,6 +302,10 @@ private let translations: [AppLanguage: T] = [
         .duration1h30m: "1h 30m",
         .duration2h: "2h",
         .durationHours: "%dh",
+
+        .settingsNotifications: "Notifications",
+        .settingsAzanReminder: "Azan Reminder",
+        .settingsAzanReminderDetail: "Get notified 30 minutes before each prayer time",
     ],
 
     // MARK: Arabic
@@ -370,6 +380,10 @@ private let translations: [AppLanguage: T] = [
         .duration1h30m: "١س ٣٠د",
         .duration2h: "٢ ساعة",
         .durationHours: "%d ساعة",
+
+        .settingsNotifications: "الإشعارات",
+        .settingsAzanReminder: "تذكير الأذان",
+        .settingsAzanReminderDetail: "احصل على إشعار قبل 30 دقيقة من كل وقت صلاة",
     ],
 
     // MARK: German
@@ -444,6 +458,10 @@ private let translations: [AppLanguage: T] = [
         .duration1h30m: "1h 30m",
         .duration2h: "2h",
         .durationHours: "%dh",
+
+        .settingsNotifications: "Benachrichtigungen",
+        .settingsAzanReminder: "Gebetserinnerung",
+        .settingsAzanReminderDetail: "30 Minuten vor jeder Gebetszeit benachrichtigt werden",
     ],
 
     // MARK: French
@@ -518,6 +536,10 @@ private let translations: [AppLanguage: T] = [
         .duration1h30m: "1h 30m",
         .duration2h: "2h",
         .durationHours: "%dh",
+
+        .settingsNotifications: "Notifications",
+        .settingsAzanReminder: "Rappel Azan",
+        .settingsAzanReminderDetail: "Recevoir une notification 30 minutes avant chaque prière",
     ],
 
     // MARK: Russian
@@ -592,6 +614,10 @@ private let translations: [AppLanguage: T] = [
         .duration1h30m: "1ч 30м",
         .duration2h: "2ч",
         .durationHours: "%dч",
+
+        .settingsNotifications: "Уведомления",
+        .settingsAzanReminder: "Напоминание об азане",
+        .settingsAzanReminderDetail: "Получать уведомление за 30 минут до намаза",
     ],
 
     // MARK: Indonesian
@@ -666,5 +692,9 @@ private let translations: [AppLanguage: T] = [
         .duration1h30m: "1j 30m",
         .duration2h: "2j",
         .durationHours: "%dj",
+
+        .settingsNotifications: "Notifikasi",
+        .settingsAzanReminder: "Pengingat Azan",
+        .settingsAzanReminderDetail: "Dapatkan notifikasi 30 menit sebelum waktu shalat",
     ],
 ]

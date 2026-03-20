@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 // MARK: - Design Tokens (mirrors ContentView's Makam namespace)
 
@@ -41,9 +42,13 @@ struct SettingsView: View {
 
 private struct SettingsRootView: View {
     @EnvironmentObject var lang: LanguageManager
+    @EnvironmentObject var prayerViewModel: PrayerViewModel
     @ObservedObject var vm: SettingsViewModel
     @Binding var navigationPath: NavigationPath
     let onSave: () -> Void
+
+    @State private var notificationsEnabled: Bool = NotificationService.isEnabled()
+    @State private var showPermissionAlert = false
 
     var body: some View {
         ZStack {
@@ -112,10 +117,71 @@ private struct SettingsRootView: View {
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
                         .foregroundStyle(MakamStyle.sandDim)
                 }
+
+                // MARK: Notifications Section
+                Section {
+                    Toggle(isOn: $notificationsEnabled) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "bell.fill")
+                                .font(.system(size: 14))
+                                .foregroundStyle(MakamStyle.gold)
+                                .frame(width: 22)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(lang.str(.settingsAzanReminder))
+                                    .font(.system(size: 16, weight: .regular, design: .rounded))
+                                    .foregroundStyle(MakamStyle.sand)
+                                Text(lang.str(.settingsAzanReminderDetail))
+                                    .font(.system(size: 12, weight: .light, design: .rounded))
+                                    .foregroundStyle(MakamStyle.sandDim)
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                    .tint(MakamStyle.gold)
+                    .listRowBackground(MakamStyle.rowBg)
+                    .listRowSeparatorTint(MakamStyle.sand.opacity(0.1))
+                    .onChange(of: notificationsEnabled) { _, newValue in
+                        if newValue {
+                            Task {
+                                let granted = await NotificationService.requestAuthorization()
+                                if granted {
+                                    NotificationService.setEnabled(true)
+                                    if let schedule = prayerViewModel.schedule {
+                                        NotificationService.scheduleNotifications(
+                                            for: schedule,
+                                            language: lang.current
+                                        )
+                                    }
+                                } else {
+                                    // Permission denied — revert toggle
+                                    notificationsEnabled = false
+                                    showPermissionAlert = true
+                                }
+                            }
+                        } else {
+                            NotificationService.setEnabled(false)
+                            NotificationService.cancelAll()
+                        }
+                    }
+                } header: {
+                    Text(lang.str(.settingsNotifications).uppercased())
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundStyle(MakamStyle.sandDim)
+                }
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
             .tint(MakamStyle.gold)
+            .alert("", isPresented: $showPermissionAlert) {
+                Button("OK", role: .cancel) { }
+                Button("Settings") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+            } message: {
+                Text("Please enable notifications for Makam in Settings to receive azan reminders.")
+            }
         }
         .navigationTitle(lang.str(.tabSettings))
         .navigationBarTitleDisplayMode(.inline)
