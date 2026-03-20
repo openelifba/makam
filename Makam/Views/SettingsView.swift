@@ -57,29 +57,26 @@ private struct SettingsRootView: View {
             List {
                 // MARK: Language Section
                 Section {
-                    ForEach(AppLanguage.allCases) { language in
-                        Button {
-                            lang.setLanguage(language)
-                        } label: {
-                            HStack(spacing: 12) {
-                                Text(language.flag)
-                                    .font(.system(size: 22))
+                    HStack(spacing: 12) {
+                        Image(systemName: "globe")
+                            .font(.system(size: 14))
+                            .foregroundStyle(MakamStyle.gold)
+                            .frame(width: 22)
+                        Picker("", selection: Binding(
+                            get: { lang.current },
+                            set: { lang.setLanguage($0) }
+                        )) {
+                            ForEach(AppLanguage.allCases) { language in
                                 Text(language.displayName)
-                                    .font(.system(size: 16, weight: .regular, design: .rounded))
-                                    .foregroundStyle(MakamStyle.sand)
-                                Spacer()
-                                if lang.current == language {
-                                    Image(systemName: "checkmark")
-                                        .foregroundStyle(MakamStyle.gold)
-                                        .font(.system(size: 14, weight: .semibold))
-                                }
+                                    .tag(language)
                             }
-                            .padding(.vertical, 2)
                         }
-                        .buttonStyle(.plain)
-                        .listRowBackground(MakamStyle.rowBg)
-                        .listRowSeparatorTint(MakamStyle.sand.opacity(0.1))
+                        .pickerStyle(.menu)
+                        .labelsHidden()
+                        .tint(MakamStyle.sand)
+                        .font(.system(size: 16, weight: .regular, design: .rounded))
                     }
+                    .listRowBackground(MakamStyle.rowBg)
                 } header: {
                     Text(lang.str(.settingsLanguage).uppercased())
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
