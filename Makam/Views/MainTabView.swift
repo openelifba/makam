@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MainTabView: View {
     @State private var selectedTab: AppTab = .prayerTimes
+    @EnvironmentObject var lang: LanguageManager
 
     init() {
         let appearance = UITabBarAppearance()
@@ -26,19 +27,19 @@ struct MainTabView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             HabitView()
-                .tabItem { Label("Alışkanlık", systemImage: "checklist") }
+                .tabItem { Label(lang.str(.tabHabits), systemImage: "checklist") }
                 .tag(AppTab.habit)
 
             ContentView()
-                .tabItem { Label("Namaz Vakitleri", systemImage: "moon.stars") }
+                .tabItem { Label(lang.str(.tabPrayerTimes), systemImage: "moon.stars") }
                 .tag(AppTab.prayerTimes)
 
             QiblaView()
-                .tabItem { Label("Kıble", systemImage: "location.north.line") }
+                .tabItem { Label(lang.str(.tabQibla), systemImage: "location.north.line") }
                 .tag(AppTab.qibla)
 
             SettingsView(selectedTab: $selectedTab)
-                .tabItem { Label("Ayarlar", systemImage: "gearshape") }
+                .tabItem { Label(lang.str(.tabSettings), systemImage: "gearshape") }
                 .tag(AppTab.settings)
         }
         .tint(Makam.gold)

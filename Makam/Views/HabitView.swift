@@ -4,6 +4,7 @@ import SwiftData
 // MARK: - HabitView
 
 struct HabitView: View {
+    @EnvironmentObject var lang: LanguageManager
     @State private var selectedDate: Date = Calendar.current.startOfDay(for: .now)
     @State private var showAddTask = false
 
@@ -62,6 +63,7 @@ private struct FABButton: View {
 // MARK: - Week Calendar Strip
 
 private struct WeekCalendarStrip: View {
+    @EnvironmentObject var lang: LanguageManager
     @Binding var selectedDate: Date
 
     private let calendar = Calendar.current
@@ -82,7 +84,8 @@ private struct WeekCalendarStrip: View {
                             DayCell(
                                 date: day,
                                 isSelected: calendar.isDate(day, inSameDayAs: selectedDate),
-                                isToday: calendar.isDateInToday(day)
+                                isToday: calendar.isDateInToday(day),
+                                locale: lang.current.locale
                             )
                             .id(day)
                             .onTapGesture {
@@ -115,15 +118,14 @@ private struct DayCell: View {
     let date: Date
     let isSelected: Bool
     let isToday: Bool
-
-    private static let trLocale = Locale(identifier: "tr_TR")
+    let locale: Locale
 
     private var weekdayLabel: String {
-        String(date.formatted(.dateTime.weekday(.abbreviated).locale(Self.trLocale)).prefix(3)).uppercased()
+        String(date.formatted(.dateTime.weekday(.abbreviated).locale(locale)).prefix(3)).uppercased()
     }
 
     private var dayNumber: String {
-        date.formatted(.dateTime.day().locale(Self.trLocale))
+        date.formatted(.dateTime.day().locale(locale))
     }
 
     var body: some View {
@@ -195,6 +197,7 @@ private struct TaskTimelineBody: View {
 // MARK: - Period Section
 
 private struct PeriodSectionView: View {
+    @EnvironmentObject var lang: LanguageManager
     let period: TimePeriod
     let tasks: [HabitTask]
 
@@ -234,7 +237,7 @@ private struct PeriodSectionView: View {
                     .font(.system(size: 13, weight: .light))
                     .foregroundStyle(Makam.gold)
                     .frame(width: 18)
-                Text(period.rawValue.uppercased())
+                Text(lang.timePeriodName(period).uppercased())
                     .font(.system(size: 11, weight: .semibold, design: .rounded))
                     .tracking(Makam.trackingLoose)
                     .foregroundStyle(Makam.sand)
@@ -267,7 +270,7 @@ private struct PeriodSectionView: View {
     private var sectionBody: some View {
         if tasks.isEmpty {
             HStack {
-                Text("Bu vakitte görev yok")
+                Text(lang.str(.habitNoTasks))
                     .font(.system(size: 12, weight: .regular, design: .rounded))
                     .foregroundStyle(Makam.sandDim.opacity(0.55))
                 Spacer()
@@ -291,6 +294,7 @@ private struct PeriodSectionView: View {
 // MARK: - Task Card
 
 private struct TaskCard: View {
+    @EnvironmentObject var lang: LanguageManager
     let task: HabitTask
     @Environment(\.modelContext) private var context
 
@@ -322,11 +326,11 @@ private struct TaskCard: View {
                     .strikethrough(task.isCompleted, color: Makam.sandDim)
                     .lineLimit(2)
                 HStack(spacing: 10) {
-                    Label("\(task.duration) dk", systemImage: "clock")
+                    Label(lang.durationLabel(task.duration), systemImage: "clock")
                         .font(.system(size: 11, design: .rounded))
                         .foregroundStyle(Makam.sandDim)
                     if task.repeatFrequency != .none {
-                        Label(task.repeatFrequency.label, systemImage: "arrow.clockwise")
+                        Label(lang.repeatLabel(task.repeatFrequency), systemImage: "arrow.clockwise")
                             .font(.system(size: 11, design: .rounded))
                             .foregroundStyle(Makam.gold.opacity(0.75))
                     }
@@ -353,31 +357,31 @@ private struct TaskCard: View {
         .contentShape(Rectangle())
         .onTapGesture { showActionMenu = true }
         .confirmationDialog(task.title, isPresented: $showActionMenu, titleVisibility: .visible) {
-            Button("Kopyala") { makeCopy() }
-            Button("Yeniden Planla") { showRescheduleSheet = true }
-            Button("Yarına Planla") { rescheduleForTomorrow() }
-            Button("Düzenle") { showEditSheet = true }
-            Button("Sil", role: .destructive) {
+            Button(lang.str(.habitCopy)) { makeCopy() }
+            Button(lang.str(.habitReschedule)) { showRescheduleSheet = true }
+            Button(lang.str(.habitTomorrow)) { rescheduleForTomorrow() }
+            Button(lang.str(.habitEdit)) { showEditSheet = true }
+            Button(lang.str(.habitDelete), role: .destructive) {
                 if task.seriesID != nil {
                     showSeriesDeleteDialog = true
                 } else {
                     showDeleteConfirm = true
                 }
             }
-            Button("İptal", role: .cancel) {}
+            Button(lang.str(.habitCancel), role: .cancel) {}
         }
-        .alert("Görevi Sil", isPresented: $showDeleteConfirm) {
-            Button("Sil", role: .destructive) { deleteTask() }
-            Button("İptal", role: .cancel) {}
+        .alert(lang.str(.habitDeleteTaskTitle), isPresented: $showDeleteConfirm) {
+            Button(lang.str(.habitDelete), role: .destructive) { deleteTask() }
+            Button(lang.str(.habitCancel), role: .cancel) {}
         } message: {
-            Text("\"\(task.title)\" silinecek. Emin misiniz?")
+            Text(lang.str(.habitDeleteConfirm).replacingOccurrences(of: "%@", with: task.title))
         }
-        .confirmationDialog("Tekrarlayan Görevi Sil", isPresented: $showSeriesDeleteDialog, titleVisibility: .visible) {
-            Button("Yalnızca Bunu Sil", role: .destructive) { deleteTask() }
-            Button("Tüm Tekrarları Sil", role: .destructive) { deleteAllInSeries() }
-            Button("İptal", role: .cancel) {}
+        .confirmationDialog(lang.str(.habitDeleteRecurringTitle), isPresented: $showSeriesDeleteDialog, titleVisibility: .visible) {
+            Button(lang.str(.habitDeleteOnlyThis), role: .destructive) { deleteTask() }
+            Button(lang.str(.habitDeleteAllSeries), role: .destructive) { deleteAllInSeries() }
+            Button(lang.str(.habitCancel), role: .cancel) {}
         } message: {
-            Text("Bu görevi mi, yoksa tüm tekrarlayan örnekleri mi silmek istiyorsunuz?")
+            Text(lang.str(.habitDeleteRecurringMessage))
         }
         .sheet(isPresented: $showEditSheet) {
             EditTaskSheet(task: task)
@@ -452,6 +456,7 @@ private struct TaskCard: View {
 // MARK: - Add Task Sheet
 
 private struct AddTaskSheet: View {
+    @EnvironmentObject var lang: LanguageManager
     let defaultDate: Date
 
     @Environment(\.dismiss) private var dismiss
@@ -509,19 +514,19 @@ private struct AddTaskSheet: View {
 
     private var sheetHeader: some View {
         HStack {
-            Button("İptal") { dismiss() }
+            Button(lang.str(.habitCancel)) { dismiss() }
                 .font(.system(size: 15, design: .rounded))
                 .foregroundStyle(Makam.sandDim)
 
             Spacer()
 
-            Text("Yeni Görev")
+            Text(lang.str(.habitNewTask))
                 .font(.system(size: 16, weight: .semibold, design: .rounded))
                 .foregroundStyle(Makam.sand)
 
             Spacer()
 
-            Button("Kaydet") { save() }
+            Button(lang.str(.habitSave)) { save() }
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .foregroundStyle(isTitleValid ? Makam.gold : Makam.sandDim.opacity(0.4))
                 .disabled(!isTitleValid)
@@ -534,8 +539,8 @@ private struct AddTaskSheet: View {
     // MARK: Fields
 
     private var titleField: some View {
-        SheetFormField(label: "Görev Başlığı") {
-            TextField("Örn: Kuran oku, Zikir çek…", text: $title)
+        SheetFormField(label: lang.str(.habitTitleField)) {
+            TextField(lang.str(.habitTitlePlaceholder), text: $title)
                 .font(.system(size: 15, design: .rounded))
                 .foregroundStyle(Makam.sand)
                 .tint(Makam.gold)
@@ -546,13 +551,13 @@ private struct AddTaskSheet: View {
     }
 
     private var dateField: some View {
-        SheetFormField(label: "Tarih") {
+        SheetFormField(label: lang.str(.habitDateField)) {
             HStack {
                 DatePicker("", selection: $selectedDate, displayedComponents: .date)
                     .datePickerStyle(.compact)
                     .labelsHidden()
                     .tint(Makam.gold)
-                    .environment(\.locale, Locale(identifier: "tr_TR"))
+                    .environment(\.locale, lang.current.locale)
                 Spacer()
             }
             .padding(.horizontal, 14)
@@ -562,12 +567,12 @@ private struct AddTaskSheet: View {
     }
 
     private var timePeriodField: some View {
-        SheetFormField(label: "Vakit") {
+        SheetFormField(label: lang.str(.habitPeriodField)) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(TimePeriod.allCases, id: \.self) { period in
                         SelectionPill(
-                            label: period.rawValue,
+                            label: lang.timePeriodName(period),
                             isSelected: selectedPeriod == period
                         ) {
                             withAnimation(.easeInOut(duration: 0.15)) {
@@ -583,12 +588,12 @@ private struct AddTaskSheet: View {
     }
 
     private var durationField: some View {
-        SheetFormField(label: "Süre") {
+        SheetFormField(label: lang.str(.habitDurationField)) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach([5, 10, 15, 20, 30, 45, 60, 90, 120], id: \.self) { mins in
                         SelectionPill(
-                            label: durationLabel(mins),
+                            label: lang.durationLabel(mins),
                             isSelected: selectedDuration == mins
                         ) {
                             withAnimation(.easeInOut(duration: 0.15)) {
@@ -604,22 +609,22 @@ private struct AddTaskSheet: View {
     }
 
     private var repeatField: some View {
-        SheetFormField(label: "Tekrar") {
+        SheetFormField(label: lang.str(.habitRepeatField)) {
             Menu {
                 ForEach(RepeatFrequency.allCases, id: \.self) { freq in
                     Button {
                         withAnimation(.easeInOut(duration: 0.15)) { selectedRepeat = freq }
                     } label: {
                         if selectedRepeat == freq {
-                            Label(freq.label, systemImage: "checkmark")
+                            Label(lang.repeatLabel(freq), systemImage: "checkmark")
                         } else {
-                            Text(freq.label)
+                            Text(lang.repeatLabel(freq))
                         }
                     }
                 }
             } label: {
                 HStack {
-                    Text(selectedRepeat.label)
+                    Text(lang.repeatLabel(selectedRepeat))
                         .font(.system(size: 14, design: .rounded))
                         .foregroundStyle(selectedRepeat == .none ? Makam.sandDim : Makam.gold)
                     Spacer()
@@ -635,10 +640,10 @@ private struct AddTaskSheet: View {
     }
 
     private var notesField: some View {
-        SheetFormField(label: "Notlar (isteğe bağlı)") {
+        SheetFormField(label: lang.str(.habitNotesField)) {
             ZStack(alignment: .topLeading) {
                 if notes.isEmpty {
-                    Text("Ek notlar veya hatırlatıcı…")
+                    Text(lang.str(.habitNotesPlaceholder))
                         .font(.system(size: 14, design: .rounded))
                         .foregroundStyle(Makam.sandDim.opacity(0.45))
                         .padding(.horizontal, 18)
@@ -660,7 +665,7 @@ private struct AddTaskSheet: View {
 
     private var saveButton: some View {
         Button(action: save) {
-            Text("Kaydet")
+            Text(lang.str(.habitSave))
                 .font(.system(size: 16, weight: .semibold, design: .rounded))
                 .foregroundStyle(isTitleValid ? Makam.bg : Makam.sandDim)
                 .frame(maxWidth: .infinity)
@@ -685,16 +690,6 @@ private struct AddTaskSheet: View {
             )
     }
 
-    private func durationLabel(_ minutes: Int) -> String {
-        switch minutes {
-        case ..<60:  return "\(minutes) dk"
-        case 60:     return "1s"
-        case 90:     return "1s 30dk"
-        case 120:    return "2s"
-        default:     return "\(minutes / 60)s"
-        }
-    }
-
     private func save() {
         guard isTitleValid else { return }
         let dateString = Self.isoFormatter.string(from: selectedDate)
@@ -715,6 +710,7 @@ private struct AddTaskSheet: View {
 // MARK: - Edit Task Sheet
 
 private struct EditTaskSheet: View {
+    @EnvironmentObject var lang: LanguageManager
     let task: HabitTask
 
     @Environment(\.dismiss) private var dismiss
@@ -773,15 +769,15 @@ private struct EditTaskSheet: View {
 
     private var sheetHeader: some View {
         HStack {
-            Button("İptal") { dismiss() }
+            Button(lang.str(.habitCancel)) { dismiss() }
                 .font(.system(size: 15, design: .rounded))
                 .foregroundStyle(Makam.sandDim)
             Spacer()
-            Text("Görevi Düzenle")
+            Text(lang.str(.habitEditTask))
                 .font(.system(size: 16, weight: .semibold, design: .rounded))
                 .foregroundStyle(Makam.sand)
             Spacer()
-            Button("Kaydet") { save() }
+            Button(lang.str(.habitSave)) { save() }
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .foregroundStyle(isTitleValid ? Makam.gold : Makam.sandDim.opacity(0.4))
                 .disabled(!isTitleValid)
@@ -792,8 +788,8 @@ private struct EditTaskSheet: View {
     }
 
     private var titleField: some View {
-        SheetFormField(label: "Görev Başlığı") {
-            TextField("Örn: Kuran oku, Zikir çek…", text: $title)
+        SheetFormField(label: lang.str(.habitTitleField)) {
+            TextField(lang.str(.habitTitlePlaceholder), text: $title)
                 .font(.system(size: 15, design: .rounded))
                 .foregroundStyle(Makam.sand)
                 .tint(Makam.gold)
@@ -804,13 +800,13 @@ private struct EditTaskSheet: View {
     }
 
     private var dateField: some View {
-        SheetFormField(label: "Tarih") {
+        SheetFormField(label: lang.str(.habitDateField)) {
             HStack {
                 DatePicker("", selection: $selectedDate, displayedComponents: .date)
                     .datePickerStyle(.compact)
                     .labelsHidden()
                     .tint(Makam.gold)
-                    .environment(\.locale, Locale(identifier: "tr_TR"))
+                    .environment(\.locale, lang.current.locale)
                 Spacer()
             }
             .padding(.horizontal, 14)
@@ -820,12 +816,12 @@ private struct EditTaskSheet: View {
     }
 
     private var timePeriodField: some View {
-        SheetFormField(label: "Vakit") {
+        SheetFormField(label: lang.str(.habitPeriodField)) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(TimePeriod.allCases, id: \.self) { period in
                         SelectionPill(
-                            label: period.rawValue,
+                            label: lang.timePeriodName(period),
                             isSelected: selectedPeriod == period
                         ) {
                             withAnimation(.easeInOut(duration: 0.15)) { selectedPeriod = period }
@@ -839,12 +835,12 @@ private struct EditTaskSheet: View {
     }
 
     private var durationField: some View {
-        SheetFormField(label: "Süre") {
+        SheetFormField(label: lang.str(.habitDurationField)) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach([5, 10, 15, 20, 30, 45, 60, 90, 120], id: \.self) { mins in
                         SelectionPill(
-                            label: durationLabel(mins),
+                            label: lang.durationLabel(mins),
                             isSelected: selectedDuration == mins
                         ) {
                             withAnimation(.easeInOut(duration: 0.15)) { selectedDuration = mins }
@@ -858,22 +854,22 @@ private struct EditTaskSheet: View {
     }
 
     private var repeatField: some View {
-        SheetFormField(label: "Tekrar") {
+        SheetFormField(label: lang.str(.habitRepeatField)) {
             Menu {
                 ForEach(RepeatFrequency.allCases, id: \.self) { freq in
                     Button {
                         withAnimation(.easeInOut(duration: 0.15)) { selectedRepeat = freq }
                     } label: {
                         if selectedRepeat == freq {
-                            Label(freq.label, systemImage: "checkmark")
+                            Label(lang.repeatLabel(freq), systemImage: "checkmark")
                         } else {
-                            Text(freq.label)
+                            Text(lang.repeatLabel(freq))
                         }
                     }
                 }
             } label: {
                 HStack {
-                    Text(selectedRepeat.label)
+                    Text(lang.repeatLabel(selectedRepeat))
                         .font(.system(size: 14, design: .rounded))
                         .foregroundStyle(selectedRepeat == .none ? Makam.sandDim : Makam.gold)
                     Spacer()
@@ -889,10 +885,10 @@ private struct EditTaskSheet: View {
     }
 
     private var notesField: some View {
-        SheetFormField(label: "Notlar (isteğe bağlı)") {
+        SheetFormField(label: lang.str(.habitNotesField)) {
             ZStack(alignment: .topLeading) {
                 if notes.isEmpty {
-                    Text("Ek notlar veya hatırlatıcı…")
+                    Text(lang.str(.habitNotesPlaceholder))
                         .font(.system(size: 14, design: .rounded))
                         .foregroundStyle(Makam.sandDim.opacity(0.45))
                         .padding(.horizontal, 18)
@@ -914,7 +910,7 @@ private struct EditTaskSheet: View {
 
     private var saveButton: some View {
         Button(action: save) {
-            Text("Kaydet")
+            Text(lang.str(.habitSave))
                 .font(.system(size: 16, weight: .semibold, design: .rounded))
                 .foregroundStyle(isTitleValid ? Makam.bg : Makam.sandDim)
                 .frame(maxWidth: .infinity)
@@ -935,16 +931,6 @@ private struct EditTaskSheet: View {
                 RoundedRectangle(cornerRadius: 10)
                     .strokeBorder(Makam.gold.opacity(0.13), lineWidth: 0.5)
             )
-    }
-
-    private func durationLabel(_ minutes: Int) -> String {
-        switch minutes {
-        case ..<60:  return "\(minutes) dk"
-        case 60:     return "1s"
-        case 90:     return "1s 30dk"
-        case 120:    return "2s"
-        default:     return "\(minutes / 60)s"
-        }
     }
 
     private func save() {
@@ -969,6 +955,7 @@ private struct EditTaskSheet: View {
 // MARK: - Reschedule Sheet
 
 private struct RescheduleSheet: View {
+    @EnvironmentObject var lang: LanguageManager
     let task: HabitTask
 
     @Environment(\.dismiss) private var dismiss
@@ -1011,15 +998,15 @@ private struct RescheduleSheet: View {
 
     private var sheetHeader: some View {
         HStack {
-            Button("İptal") { dismiss() }
+            Button(lang.str(.habitCancel)) { dismiss() }
                 .font(.system(size: 15, design: .rounded))
                 .foregroundStyle(Makam.sandDim)
             Spacer()
-            Text("Yeniden Planla")
+            Text(lang.str(.habitRescheduleTitle))
                 .font(.system(size: 16, weight: .semibold, design: .rounded))
                 .foregroundStyle(Makam.sand)
             Spacer()
-            Button("Planla") { save() }
+            Button(lang.str(.habitPlanButton)) { save() }
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .foregroundStyle(Makam.gold)
         }
@@ -1029,13 +1016,13 @@ private struct RescheduleSheet: View {
     }
 
     private var dateField: some View {
-        SheetFormField(label: "Yeni Tarih") {
+        SheetFormField(label: lang.str(.habitNewDate)) {
             HStack {
                 DatePicker("", selection: $selectedDate, displayedComponents: .date)
                     .datePickerStyle(.compact)
                     .labelsHidden()
                     .tint(Makam.gold)
-                    .environment(\.locale, Locale(identifier: "tr_TR"))
+                    .environment(\.locale, lang.current.locale)
                 Spacer()
             }
             .padding(.horizontal, 14)
@@ -1045,12 +1032,12 @@ private struct RescheduleSheet: View {
     }
 
     private var timePeriodField: some View {
-        SheetFormField(label: "Vakit") {
+        SheetFormField(label: lang.str(.habitPeriodField)) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(TimePeriod.allCases, id: \.self) { period in
                         SelectionPill(
-                            label: period.rawValue,
+                            label: lang.timePeriodName(period),
                             isSelected: selectedPeriod == period
                         ) {
                             withAnimation(.easeInOut(duration: 0.15)) { selectedPeriod = period }
@@ -1065,7 +1052,7 @@ private struct RescheduleSheet: View {
 
     private var saveButton: some View {
         Button(action: save) {
-            Text("Planla")
+            Text(lang.str(.habitPlanButton))
                 .font(.system(size: 16, weight: .semibold, design: .rounded))
                 .foregroundStyle(Makam.bg)
                 .frame(maxWidth: .infinity)
