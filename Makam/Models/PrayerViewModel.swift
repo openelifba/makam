@@ -28,6 +28,10 @@ class PrayerViewModel: ObservableObject {
 
     private var timer: AnyCancellable?
 
+    // The language is injected after init so the view model can pass it to
+    // NotificationService. Defaults to system language, updated by LanguageManager.
+    var language: AppLanguage = .english
+
     init() {
         startTimer()
     }
@@ -54,6 +58,8 @@ class PrayerViewModel: ObservableObject {
             self.locationName = SettingsViewModel.savedLocationLabel()
             self.refreshContext()
             self.isLoading = false
+            // Schedule azan notifications for today's prayers.
+            NotificationService.scheduleNotifications(for: today, language: language)
             // Weather is secondary — fetch after prayer data succeeds.
             await fetchWeather()
         } catch {
