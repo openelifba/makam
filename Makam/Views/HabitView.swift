@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 
 // MARK: - HabitView
 
@@ -24,9 +23,7 @@ struct HabitView: View {
         }
         .sheet(isPresented: $showAddTask) {
             AddTaskSheet(defaultDate: selectedDate)
-                .presentationDetents([.fraction(0.80), .large])
-                .presentationBackground(Makam.bg)
-                .presentationDragIndicator(.visible)
+                .applyPresentationDetents()
         }
     }
 }
@@ -97,7 +94,7 @@ private struct WeekCalendarStrip: View {
                     .padding(.vertical, 10)
                 }
                 .onAppear { proxy.scrollTo(today, anchor: .center) }
-                .onChange(of: selectedDate) { _, date in
+                .onChange(of: selectedDate) { date in
                     withAnimation(.easeInOut(duration: 0.3)) {
                         proxy.scrollTo(calendar.startOfDay(for: date), anchor: .center)
                     }
@@ -172,10 +169,11 @@ private struct TaskTimelineContainer: View {
 }
 
 private struct TaskTimelineBody: View {
-    @Query private var tasks: [HabitTask]
+    @EnvironmentObject var store: HabitStore
+    let dateString: String
 
-    init(dateString: String) {
-        _tasks = Query(filter: #Predicate<HabitTask> { $0.date == dateString })
+    private var tasks: [HabitTask] {
+        store.tasks(for: dateString)
     }
 
     var body: some View {
@@ -295,8 +293,8 @@ private struct PeriodSectionView: View {
 
 private struct TaskCard: View {
     @EnvironmentObject var lang: LanguageManager
+    @EnvironmentObject var store: HabitStore
     let task: HabitTask
-    @Environment(\.modelContext) private var context
 
     @State private var showActionMenu = false
     @State private var showEditSheet = false
@@ -311,8 +309,7 @@ private struct TaskCard: View {
     }()
 
     var body: some View {
-        if task.modelContext == nil { return AnyView(EmptyView()) }
-        return AnyView(taskContent)
+        taskContent
     }
 
     @ViewBuilder
@@ -385,23 +382,20 @@ private struct TaskCard: View {
         }
         .sheet(isPresented: $showEditSheet) {
             EditTaskSheet(task: task)
-                .presentationDetents([.fraction(0.80), .large])
-                .presentationBackground(Makam.bg)
-                .presentationDragIndicator(.visible)
+                .applyPresentationDetents()
         }
         .sheet(isPresented: $showRescheduleSheet) {
             RescheduleSheet(task: task)
-                .presentationDetents([.medium])
-                .presentationBackground(Makam.bg)
-                .presentationDragIndicator(.visible)
+                .applyMediumDetent()
         }
     }
 
     private var completionButton: some View {
         Button {
             withAnimation(.easeInOut(duration: 0.15)) {
-                task.isCompleted.toggle()
-                try? context.save()
+                var updated = task
+                updated.isCompleted.toggle()
+                store.update(updated)
             }
         } label: {
             ZStack {
@@ -423,8 +417,8 @@ private struct TaskCard: View {
     }
 
     private func makeCopy() {
-        let repo = TaskRepository(context: context)
-        try? repo.create(
+        let repo = TaskRepository(store: store)
+        repo.create(
             title: task.title,
             date: task.date,
             timePeriod: task.timePeriod,
@@ -437,19 +431,18 @@ private struct TaskCard: View {
         guard let taskDate = Self.isoFormatter.date(from: task.date),
               let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: taskDate)
         else { return }
-        task.date = Self.isoFormatter.string(from: tomorrow)
-        try? context.save()
+        var updated = task
+        updated.date = Self.isoFormatter.string(from: tomorrow)
+        store.update(updated)
     }
 
     private func deleteTask() {
-        let repo = TaskRepository(context: context)
-        try? repo.delete(task)
+        store.delete(id: task.id)
     }
 
     private func deleteAllInSeries() {
         guard let sid = task.seriesID else { return }
-        let repo = TaskRepository(context: context)
-        try? repo.deleteAllInSeries(seriesID: sid)
+        store.deleteAllInSeries(seriesID: sid)
     }
 }
 
@@ -457,10 +450,10 @@ private struct TaskCard: View {
 
 private struct AddTaskSheet: View {
     @EnvironmentObject var lang: LanguageManager
+    @EnvironmentObject var store: HabitStore
     let defaultDate: Date
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var context
 
     @State private var title = ""
     @State private var selectedDate: Date
@@ -654,7 +647,7 @@ private struct AddTaskSheet: View {
                     .font(.system(size: 14, design: .rounded))
                     .foregroundStyle(Makam.sand)
                     .tint(Makam.gold)
-                    .scrollContentBackground(.hidden)
+                    .hideScrollContentBackground()
                     .frame(minHeight: 88)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)
@@ -694,8 +687,8 @@ private struct AddTaskSheet: View {
         guard isTitleValid else { return }
         let dateString = Self.isoFormatter.string(from: selectedDate)
         let trimmedNotes = notes.trimmingCharacters(in: .whitespaces)
-        let repo = TaskRepository(context: context)
-        try? repo.createWithRepeat(
+        let repo = TaskRepository(store: store)
+        repo.createWithRepeat(
             title: title.trimmingCharacters(in: .whitespaces),
             date: dateString,
             timePeriod: selectedPeriod,
@@ -711,10 +704,10 @@ private struct AddTaskSheet: View {
 
 private struct EditTaskSheet: View {
     @EnvironmentObject var lang: LanguageManager
+    @EnvironmentObject var store: HabitStore
     let task: HabitTask
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var context
 
     @State private var title: String
     @State private var selectedDate: Date
@@ -899,7 +892,7 @@ private struct EditTaskSheet: View {
                     .font(.system(size: 14, design: .rounded))
                     .foregroundStyle(Makam.sand)
                     .tint(Makam.gold)
-                    .scrollContentBackground(.hidden)
+                    .hideScrollContentBackground()
                     .frame(minHeight: 88)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)
@@ -937,8 +930,8 @@ private struct EditTaskSheet: View {
         guard isTitleValid else { return }
         let dateString = Self.isoFormatter.string(from: selectedDate)
         let trimmedNotes = notes.trimmingCharacters(in: .whitespaces)
-        let repo = TaskRepository(context: context)
-        try? repo.update(
+        let repo = TaskRepository(store: store)
+        repo.update(
             task,
             title: title.trimmingCharacters(in: .whitespaces),
             date: dateString,
@@ -956,10 +949,10 @@ private struct EditTaskSheet: View {
 
 private struct RescheduleSheet: View {
     @EnvironmentObject var lang: LanguageManager
+    @EnvironmentObject var store: HabitStore
     let task: HabitTask
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var context
 
     @State private var selectedDate: Date
     @State private var selectedPeriod: TimePeriod
@@ -1072,9 +1065,10 @@ private struct RescheduleSheet: View {
     }
 
     private func save() {
-        task.date = Self.isoFormatter.string(from: selectedDate)
-        task.timePeriod = selectedPeriod
-        try? context.save()
+        var updated = task
+        updated.date = Self.isoFormatter.string(from: selectedDate)
+        updated.timePeriod = selectedPeriod
+        store.update(updated)
         dismiss()
     }
 }
@@ -1130,5 +1124,44 @@ private struct SelectionPill: View {
                 )
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - iOS 15 Compatibility Helpers
+
+private extension View {
+    /// Applies `.presentationDetents([.fraction(0.80), .large])` on iOS 16+;
+    /// on iOS 15 the sheet opens full-screen by default.
+    @ViewBuilder
+    func applyPresentationDetents() -> some View {
+        if #available(iOS 16.0, *) {
+            self
+                .presentationDetents([.fraction(0.80), .large])
+                .presentationDragIndicator(.visible)
+        } else {
+            self
+        }
+    }
+
+    /// Applies `.presentationDetents([.medium])` on iOS 16+.
+    @ViewBuilder
+    func applyMediumDetent() -> some View {
+        if #available(iOS 16.0, *) {
+            self
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+        } else {
+            self
+        }
+    }
+
+    /// Hides the scroll content background on iOS 16+; no-op on iOS 15.
+    @ViewBuilder
+    func hideScrollContentBackground() -> some View {
+        if #available(iOS 16.0, *) {
+            self.scrollContentBackground(.hidden)
+        } else {
+            self
+        }
     }
 }

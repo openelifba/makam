@@ -37,9 +37,7 @@ struct ContentView: View {
         .sheet(isPresented: $showWeatherSheet) {
             if case .loaded(let snapshot) = viewModel.weatherState {
                 WeatherDetailSheet(snapshot: snapshot, schedule: viewModel.schedule)
-                    .presentationDetents([.fraction(0.45)])
-                    .presentationBackground(Makam.bg)
-                    .presentationDragIndicator(.hidden)
+                    .applyWeatherSheetPresentation()
             }
         }
     }
@@ -305,6 +303,21 @@ struct SunArcView: View {
         }
         .frame(height: 130)
         .padding(.horizontal, 16)
+    }
+}
+
+// MARK: - iOS 15 Compatibility
+
+private extension View {
+    @ViewBuilder
+    func applyWeatherSheetPresentation() -> some View {
+        if #available(iOS 16.0, *) {
+            self
+                .presentationDetents([.fraction(0.45)])
+                .presentationDragIndicator(.hidden)
+        } else {
+            self
+        }
     }
 }
 

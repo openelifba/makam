@@ -1,5 +1,4 @@
 import Foundation
-import SwiftData
 
 // MARK: - RepeatFrequency
 
@@ -40,9 +39,8 @@ enum TimePeriod: String, Codable, CaseIterable {
 // MARK: - HabitTask
 
 /// A single habit task associated with a prayer period.
-/// Persisted locally via SwiftData (no backend required).
-@Model
-final class HabitTask {
+/// Persisted locally via JSON (compatible with iOS 15+).
+struct HabitTask: Codable, Identifiable {
     /// Stable UUID string — generated on creation and never changed.
     var id: String
 
@@ -65,7 +63,7 @@ final class HabitTask {
     var isCompleted: Bool
 
     /// How often this task repeats. Defaults to `.none` (no repeat).
-    var repeatFrequency: RepeatFrequency = RepeatFrequency.none
+    var repeatFrequency: RepeatFrequency
 
     /// Shared UUID string that links all instances of the same repeat series.
     /// `nil` for tasks that are not part of a recurring series.

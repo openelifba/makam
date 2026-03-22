@@ -1,22 +1,21 @@
 import Foundation
-import SwiftData
 
 // MARK: - TaskRepository
 
-/// Local-only repository for HabitTask CRUD operations backed by SwiftData.
+/// Local-only repository for HabitTask CRUD operations backed by HabitStore.
 ///
-/// Inject a `ModelContext` obtained from the SwiftData container:
+/// Usage:
 /// ```swift
-/// @Environment(\.modelContext) private var context
-/// let repo = TaskRepository(context: context)
+/// @EnvironmentObject var store: HabitStore
+/// let repo = TaskRepository(store: store)
 /// ```
 @MainActor
 final class TaskRepository {
 
-    private let context: ModelContext
+    private let store: HabitStore
 
-    init(context: ModelContext) {
-        self.context = context
+    init(store: HabitStore) {
+        self.store = store
     }
 
     private static let isoFormatter: DateFormatter = {
@@ -36,7 +35,7 @@ final class TaskRepository {
         duration: Int,
         notes: String? = nil,
         repeatFrequency: RepeatFrequency = .none
-    ) throws -> HabitTask {
+    ) -> HabitTask {
         let task = HabitTask(
             title: title,
             date: date,
@@ -45,8 +44,7 @@ final class TaskRepository {
             notes: notes,
             repeatFrequency: repeatFrequency
         )
-        context.insert(task)
-        try context.save()
+        store.insert(task)
         return task
     }
 
@@ -59,7 +57,7 @@ final class TaskRepository {
         duration: Int,
         notes: String? = nil,
         repeatFrequency: RepeatFrequency
-    ) throws {
+    ) {
         guard let startDate = Self.isoFormatter.date(from: date) else { return }
 
         let cal = Calendar.current
@@ -72,8 +70,7 @@ final class TaskRepository {
                 title: title, date: date, timePeriod: timePeriod,
                 duration: duration, notes: notes, repeatFrequency: repeatFrequency
             )
-            context.insert(task)
-            try context.save()
+            store.insert(task)
             return
         case .daily:
             offsets = Array(0..<90)
@@ -101,42 +98,20 @@ final class TaskRepository {
                 repeatFrequency: repeatFrequency,
                 seriesID: seriesID
             )
-            context.insert(task)
+            store.insert(task)
         }
-        try context.save()
     }
 
     // MARK: - Read
 
-    /// Returns all tasks for a given date, ordered by prayer-period sequence
-    /// (İmsak → Güneş → Öğle → İkindi → Akşam → Yatsı).
-    func tasks(for date: String) throws -> [HabitTask] {
-        let predicate = #Predicate<HabitTask> { $0.date == date }
-        let descriptor = FetchDescriptor<HabitTask>(predicate: predicate)
-        let results = try context.fetch(descriptor)
-
-        // Sort in-memory using the canonical TimePeriod.allCases order.
-        let order = TimePeriod.allCases.map(\.rawValue)
-        return results.sorted {
-            let li = order.firstIndex(of: $0.timePeriod.rawValue) ?? Int.max
-            let ri = order.firstIndex(of: $1.timePeriod.rawValue) ?? Int.max
-            return li < ri
-        }
+    /// Returns all tasks for a given date, ordered by prayer-period sequence.
+    func tasks(for date: String) -> [HabitTask] {
+        store.tasks(for: date)
     }
 
     /// Returns every stored task regardless of date, ordered by date then prayer period.
-    func allTasks() throws -> [HabitTask] {
-        let descriptor = FetchDescriptor<HabitTask>(
-            sortBy: [SortDescriptor(\.date, order: .forward)]
-        )
-        let results = try context.fetch(descriptor)
-        let order = TimePeriod.allCases.map(\.rawValue)
-        return results.sorted {
-            if $0.date != $1.date { return $0.date < $1.date }
-            let li = order.firstIndex(of: $0.timePeriod.rawValue) ?? Int.max
-            let ri = order.firstIndex(of: $1.timePeriod.rawValue) ?? Int.max
-            return li < ri
-        }
+    func allTasks() -> [HabitTask] {
+        store.allTasks()
     }
 
     // MARK: - Update
@@ -151,45 +126,39 @@ final class TaskRepository {
         notes: String?,
         isCompleted: Bool,
         repeatFrequency: RepeatFrequency = .none
-    ) throws {
-        task.title           = title
-        task.date            = date
-        task.timePeriod      = timePeriod
-        task.duration        = duration
-        task.notes           = notes
-        task.isCompleted     = isCompleted
-        task.repeatFrequency = repeatFrequency
-        try context.save()
+    ) {
+        var updated = task
+        updated.title           = title
+        updated.date            = date
+        updated.timePeriod      = timePeriod
+        updated.duration        = duration
+        updated.notes           = notes
+        updated.isCompleted     = isCompleted
+        updated.repeatFrequency = repeatFrequency
+        store.update(updated)
     }
 
     /// Toggles the completion state of a task.
-    func toggleCompletion(_ task: HabitTask) throws {
-        task.isCompleted.toggle()
-        try context.save()
+    func toggleCompletion(_ task: HabitTask) {
+        var updated = task
+        updated.isCompleted.toggle()
+        store.update(updated)
     }
 
     // MARK: - Delete
 
     /// Removes a single task from the store.
-    func delete(_ task: HabitTask) throws {
-        context.delete(task)
-        try context.save()
+    func delete(_ task: HabitTask) {
+        store.delete(id: task.id)
     }
 
     /// Removes all tasks for a given date.
-    func deleteAll(for date: String) throws {
-        let tasks = try tasks(for: date)
-        tasks.forEach { context.delete($0) }
-        try context.save()
+    func deleteAll(for date: String) {
+        store.deleteAll(for: date)
     }
 
     /// Removes every task that belongs to the same repeat series.
-    func deleteAllInSeries(seriesID: String) throws {
-        let sid = seriesID
-        let predicate = #Predicate<HabitTask> { $0.seriesID == sid }
-        let descriptor = FetchDescriptor<HabitTask>(predicate: predicate)
-        let tasks = try context.fetch(descriptor)
-        tasks.forEach { context.delete($0) }
-        try context.save()
+    func deleteAllInSeries(seriesID: String) {
+        store.deleteAllInSeries(seriesID: seriesID)
     }
 }
