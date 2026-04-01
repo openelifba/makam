@@ -26,15 +26,15 @@ import SwiftUI
 /// Maps the active prayer's numeric id to a named sky period.
 /// Order matches PrayerMetadata.catalogue: 0 = İmsak … 5 = Yatsı.
 enum PrayerPeriod: Int, CaseIterable, Equatable {
-    case imsak  = 0   // Pre-dawn  (~03:30–05:00)
-    case gunes  = 1   // Sunrise   (~05:00–07:00)
-    case ogle   = 2   // Midday    (~12:00–15:00)
-    case ikindi = 3   // Afternoon (~15:00–18:00)
-    case aksam  = 4   // Sunset    (~18:00–20:00)
-    case yatsi  = 5   // Night     (~20:00–03:30)
+    case fajr    = 0   // Pre-dawn  (~03:30–05:00)
+    case shuruq  = 1   // Sunrise   (~05:00–07:00)
+    case dhuhr   = 2   // Midday    (~12:00–15:00)
+    case asr     = 3   // Afternoon (~15:00–18:00)
+    case maghrib = 4   // Sunset    (~18:00–20:00)
+    case isha    = 5   // Night     (~20:00–03:30)
 
     init(prayerID: Int) {
-        self = PrayerPeriod(rawValue: prayerID) ?? .yatsi
+        self = PrayerPeriod(rawValue: prayerID) ?? .isha
     }
 }
 
@@ -107,7 +107,7 @@ enum PaletteLibrary {
         // İMSAK — Pre-dawn: stars fading, deep blues/indigo
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-        case (.imsak, .clear):
+        case (.fajr, .clear):
             // Cosmos near-black → deep indigo → midnight violet
             return .init(stops: [
                 Color(red: 0.04, green: 0.03, blue: 0.15),
@@ -115,7 +115,7 @@ enum PaletteLibrary {
                 Color(red: 0.15, green: 0.09, blue: 0.38),
             ])
 
-        case (.imsak, .partlyCloudy):
+        case (.fajr, .partlyCloudy):
             // Stars dimmed by thin cloud — bluer, slightly lighter
             return .init(stops: [
                 Color(red: 0.05, green: 0.05, blue: 0.18),
@@ -123,7 +123,7 @@ enum PaletteLibrary {
                 Color(red: 0.17, green: 0.13, blue: 0.34),
             ])
 
-        case (.imsak, .overcast):
+        case (.fajr, .overcast):
             // Thick cloud blocks starlight — flat charcoal-navy
             return .init(stops: [
                 Color(red: 0.07, green: 0.07, blue: 0.12),
@@ -131,7 +131,7 @@ enum PaletteLibrary {
                 Color(red: 0.15, green: 0.14, blue: 0.21),
             ])
 
-        case (.imsak, .precipitation):
+        case (.fajr, .precipitation):
             // Rain-soaked pre-dawn — cool blue-slate
             return .init(stops: [
                 Color(red: 0.05, green: 0.07, blue: 0.17),
@@ -139,7 +139,7 @@ enum PaletteLibrary {
                 Color(red: 0.11, green: 0.15, blue: 0.29),
             ])
 
-        case (.imsak, .snow):
+        case (.fajr, .snow):
             // Snowy pre-dawn — diffused ambient cold light, blue-silver
             return .init(stops: [
                 Color(red: 0.07, green: 0.09, blue: 0.21),
@@ -147,7 +147,7 @@ enum PaletteLibrary {
                 Color(red: 0.18, green: 0.20, blue: 0.33),
             ])
 
-        case (.imsak, .storm):
+        case (.fajr, .storm):
             // Approaching storm — almost black, bruised purple undertone
             return .init(stops: [
                 Color(red: 0.04, green: 0.02, blue: 0.10),
@@ -159,7 +159,7 @@ enum PaletteLibrary {
         // GÜNEŞ — Sunrise: warm pinks, rose, burnt orange rising
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-        case (.gunes, .clear):
+        case (.shuruq, .clear):
             // Violet zenith → rich rose-crimson → burnt orange → golden horizon
             return .init(stops: [
                 Color(red: 0.11, green: 0.07, blue: 0.22),
@@ -168,7 +168,7 @@ enum PaletteLibrary {
                 Color(red: 0.96, green: 0.74, blue: 0.34),
             ])
 
-        case (.gunes, .partlyCloudy):
+        case (.shuruq, .partlyCloudy):
             // Clouds diffuse the orange into soft peachy-rose
             return .init(stops: [
                 Color(red: 0.14, green: 0.10, blue: 0.26),
@@ -177,7 +177,7 @@ enum PaletteLibrary {
                 Color(red: 0.90, green: 0.72, blue: 0.52),
             ])
 
-        case (.gunes, .overcast):
+        case (.shuruq, .overcast):
             // Thick cloud — muted mauve and warm grey, no orange break-through
             return .init(stops: [
                 Color(red: 0.18, green: 0.15, blue: 0.24),
@@ -185,7 +185,7 @@ enum PaletteLibrary {
                 Color(red: 0.50, green: 0.44, blue: 0.42),
             ])
 
-        case (.gunes, .precipitation):
+        case (.shuruq, .precipitation):
             // Rainy dawn — cool blue-grey, warm tones washed out
             return .init(stops: [
                 Color(red: 0.10, green: 0.12, blue: 0.25),
@@ -193,7 +193,7 @@ enum PaletteLibrary {
                 Color(red: 0.32, green: 0.34, blue: 0.49),
             ])
 
-        case (.gunes, .snow):
+        case (.shuruq, .snow):
             // Snowy sunrise — pale steel-blue with a faint warm horizon blush
             return .init(stops: [
                 Color(red: 0.14, green: 0.16, blue: 0.31),
@@ -201,7 +201,7 @@ enum PaletteLibrary {
                 Color(red: 0.60, green: 0.58, blue: 0.63),
             ])
 
-        case (.gunes, .storm):
+        case (.shuruq, .storm):
             // Stormy dawn — ominous dark purples, only a thin ember slit at horizon
             return .init(stops: [
                 Color(red: 0.06, green: 0.04, blue: 0.14),
@@ -213,7 +213,7 @@ enum PaletteLibrary {
         // ÖĞLE — Midday: high sun, saturated azure sky
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-        case (.ogle, .clear):
+        case (.dhuhr, .clear):
             // Deep azure zenith → rich mid-blue → lighter horizon cerulean
             return .init(stops: [
                 Color(red: 0.04, green: 0.22, blue: 0.52),
@@ -221,7 +221,7 @@ enum PaletteLibrary {
                 Color(red: 0.14, green: 0.50, blue: 0.84),
             ])
 
-        case (.ogle, .partlyCloudy):
+        case (.dhuhr, .partlyCloudy):
             // Blue sky with hazy patches — lighter, slightly desaturated
             return .init(stops: [
                 Color(red: 0.08, green: 0.24, blue: 0.52),
@@ -229,7 +229,7 @@ enum PaletteLibrary {
                 Color(red: 0.36, green: 0.54, blue: 0.74),
             ])
 
-        case (.ogle, .overcast):
+        case (.dhuhr, .overcast):
             // Flat diffuse canopy — grey-blue, no visible sun
             return .init(stops: [
                 Color(red: 0.22, green: 0.24, blue: 0.30),
@@ -237,7 +237,7 @@ enum PaletteLibrary {
                 Color(red: 0.42, green: 0.44, blue: 0.50),
             ])
 
-        case (.ogle, .precipitation):
+        case (.dhuhr, .precipitation):
             // Rainy noon — uniform blue-slate
             return .init(stops: [
                 Color(red: 0.12, green: 0.18, blue: 0.34),
@@ -245,7 +245,7 @@ enum PaletteLibrary {
                 Color(red: 0.24, green: 0.34, blue: 0.52),
             ])
 
-        case (.ogle, .snow):
+        case (.dhuhr, .snow):
             // Snowy midday — milky, bright blue-grey canopy
             return .init(stops: [
                 Color(red: 0.30, green: 0.34, blue: 0.46),
@@ -253,7 +253,7 @@ enum PaletteLibrary {
                 Color(red: 0.58, green: 0.60, blue: 0.68),
             ])
 
-        case (.ogle, .storm):
+        case (.dhuhr, .storm):
             // Stormy noon — dark threatening navy, sun fully blocked
             return .init(stops: [
                 Color(red: 0.08, green: 0.10, blue: 0.20),
@@ -265,7 +265,7 @@ enum PaletteLibrary {
         // İKİNDİ — Afternoon: warm amber light, sun dropping in the west
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-        case (.ikindi, .clear):
+        case (.asr, .clear):
             // Teal-blue zenith → warm amber → liquid gold horizon
             return .init(stops: [
                 Color(red: 0.06, green: 0.20, blue: 0.46),
@@ -274,7 +274,7 @@ enum PaletteLibrary {
                 Color(red: 0.96, green: 0.80, blue: 0.44),
             ])
 
-        case (.ikindi, .partlyCloudy):
+        case (.asr, .partlyCloudy):
             // Warm amber sky, clouds scattering the gold
             return .init(stops: [
                 Color(red: 0.10, green: 0.22, blue: 0.46),
@@ -282,7 +282,7 @@ enum PaletteLibrary {
                 Color(red: 0.76, green: 0.60, blue: 0.30),
             ])
 
-        case (.ikindi, .overcast):
+        case (.asr, .overcast):
             // Warm grey-brown, afternoon light filtered through cloud
             return .init(stops: [
                 Color(red: 0.18, green: 0.18, blue: 0.24),
@@ -290,7 +290,7 @@ enum PaletteLibrary {
                 Color(red: 0.44, green: 0.40, blue: 0.34),
             ])
 
-        case (.ikindi, .precipitation):
+        case (.asr, .precipitation):
             // Afternoon rain — cool blue-charcoal, gold stripped away
             return .init(stops: [
                 Color(red: 0.10, green: 0.14, blue: 0.28),
@@ -298,7 +298,7 @@ enum PaletteLibrary {
                 Color(red: 0.30, green: 0.30, blue: 0.45),
             ])
 
-        case (.ikindi, .snow):
+        case (.asr, .snow):
             // Cold afternoon snow — silvery blue-grey
             return .init(stops: [
                 Color(red: 0.20, green: 0.24, blue: 0.40),
@@ -306,7 +306,7 @@ enum PaletteLibrary {
                 Color(red: 0.56, green: 0.58, blue: 0.66),
             ])
 
-        case (.ikindi, .storm):
+        case (.asr, .storm):
             // Stormy afternoon — dark amber-charcoal
             return .init(stops: [
                 Color(red: 0.08, green: 0.08, blue: 0.14),
@@ -318,7 +318,7 @@ enum PaletteLibrary {
         // AKŞAM — Sunset (Maghrib): dramatic warm palette
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-        case (.aksam, .clear):
+        case (.maghrib, .clear):
             // Deep violet zenith → rich crimson → burning orange → amber horizon
             return .init(stops: [
                 Color(red: 0.08, green: 0.04, blue: 0.20),
@@ -327,7 +327,7 @@ enum PaletteLibrary {
                 Color(red: 0.96, green: 0.56, blue: 0.12),
             ])
 
-        case (.aksam, .partlyCloudy):
+        case (.maghrib, .partlyCloudy):
             // Clouds catching the last light — peachy-pink, softer orange
             return .init(stops: [
                 Color(red: 0.12, green: 0.08, blue: 0.26),
@@ -336,7 +336,7 @@ enum PaletteLibrary {
                 Color(red: 0.90, green: 0.64, blue: 0.38),
             ])
 
-        case (.aksam, .overcast):
+        case (.maghrib, .overcast):
             // Cloudy sunset — muted rust, warm grey, glow suppressed
             return .init(stops: [
                 Color(red: 0.14, green: 0.10, blue: 0.20),
@@ -344,7 +344,7 @@ enum PaletteLibrary {
                 Color(red: 0.50, green: 0.36, blue: 0.28),
             ])
 
-        case (.aksam, .precipitation):
+        case (.maghrib, .precipitation):
             // Rainy sunset — cool purple-grey, no warm glow reaches through
             return .init(stops: [
                 Color(red: 0.08, green: 0.10, blue: 0.24),
@@ -352,7 +352,7 @@ enum PaletteLibrary {
                 Color(red: 0.30, green: 0.26, blue: 0.44),
             ])
 
-        case (.aksam, .snow):
+        case (.maghrib, .snow):
             // Snowy sunset — cold blush-lavender
             return .init(stops: [
                 Color(red: 0.14, green: 0.14, blue: 0.30),
@@ -360,7 +360,7 @@ enum PaletteLibrary {
                 Color(red: 0.54, green: 0.48, blue: 0.60),
             ])
 
-        case (.aksam, .storm):
+        case (.maghrib, .storm):
             // Stormy sunset — near-black with deep crimson bruise
             return .init(stops: [
                 Color(red: 0.05, green: 0.03, blue: 0.12),
@@ -372,7 +372,7 @@ enum PaletteLibrary {
         // YATSI — Night: deep, quiet night sky
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-        case (.yatsi, .clear):
+        case (.isha, .clear):
             // Near-black cosmos → midnight blue — subtle depth
             return .init(stops: [
                 Color(red: 0.02, green: 0.02, blue: 0.08),
@@ -380,7 +380,7 @@ enum PaletteLibrary {
                 Color(red: 0.07, green: 0.07, blue: 0.22),
             ])
 
-        case (.yatsi, .partlyCloudy):
+        case (.isha, .partlyCloudy):
             // Thin cloud dims the stars slightly
             return .init(stops: [
                 Color(red: 0.04, green: 0.04, blue: 0.12),
@@ -388,7 +388,7 @@ enum PaletteLibrary {
                 Color(red: 0.10, green: 0.11, blue: 0.24),
             ])
 
-        case (.yatsi, .overcast):
+        case (.isha, .overcast):
             // Overcast night — flat dark charcoal, no star glow
             return .init(stops: [
                 Color(red: 0.06, green: 0.06, blue: 0.10),
@@ -396,7 +396,7 @@ enum PaletteLibrary {
                 Color(red: 0.12, green: 0.12, blue: 0.18),
             ])
 
-        case (.yatsi, .precipitation):
+        case (.isha, .precipitation):
             // Rainy night — cool blue-charcoal
             return .init(stops: [
                 Color(red: 0.05, green: 0.06, blue: 0.14),
@@ -404,7 +404,7 @@ enum PaletteLibrary {
                 Color(red: 0.10, green: 0.12, blue: 0.24),
             ])
 
-        case (.yatsi, .snow):
+        case (.isha, .snow):
             // Snowy night — diffused cold ambient light, blue-silver
             return .init(stops: [
                 Color(red: 0.06, green: 0.08, blue: 0.18),
@@ -412,7 +412,7 @@ enum PaletteLibrary {
                 Color(red: 0.16, green: 0.18, blue: 0.30),
             ])
 
-        case (.yatsi, .storm):
+        case (.isha, .storm):
             // Stormy night — blackest palette in the catalogue
             return .init(stops: [
                 Color(red: 0.02, green: 0.02, blue: 0.06),
@@ -689,12 +689,12 @@ private struct _PreviewCycler: View {
 private extension PrayerPeriod {
     var previewLabel: String {
         switch self {
-        case .imsak:  return "İmsak — Sabah öncesi"
-        case .gunes:  return "Güneş — Şafak"
-        case .ogle:   return "Öğle — Gün ortası"
-        case .ikindi: return "İkindi — Öğleden sonra"
-        case .aksam:  return "Akşam — Gün batımı"
-        case .yatsi:  return "Yatsı — Gece"
+        case .fajr:    return "Fajr — Sabah öncesi"
+        case .shuruq:  return "Shuruq — Şafak"
+        case .dhuhr:   return "Dhuhr — Gün ortası"
+        case .asr:     return "Asr — Öğleden sonra"
+        case .maghrib: return "Maghrib — Gün batımı"
+        case .isha:    return "Isha — Gece"
         }
     }
 }

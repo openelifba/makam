@@ -1,12 +1,20 @@
 import SwiftUI
-import SwiftData
 
 // MARK: - HabitView
 
 struct HabitView: View {
     @EnvironmentObject var lang: LanguageManager
+    @EnvironmentObject var habitVM: HabitViewModel
     @State private var selectedDate: Date = Calendar.current.startOfDay(for: .now)
     @State private var showAddTask = false
+
+    private static let isoFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
+    private var dateString: String { Self.isoFormatter.string(from: selectedDate) }
 
     var body: some View {
         ZStack {
@@ -14,7 +22,10 @@ struct HabitView: View {
 
             VStack(spacing: 0) {
                 WeekCalendarStrip(selectedDate: $selectedDate)
-                TaskTimelineContainer(date: selectedDate)
+                TaskTimelineBody(
+                    tasks: habitVM.tasks,
+                    dateString: dateString
+                )
             }
         }
         .overlay(alignment: .bottomTrailing) {
@@ -27,6 +38,12 @@ struct HabitView: View {
                 .presentationDetents([.fraction(0.80), .large])
                 .presentationBackground(Makam.bg)
                 .presentationDragIndicator(.visible)
+        }
+        .onAppear {
+            habitVM.fetchTasks(for: dateString)
+        }
+        .onChange(of: selectedDate) { _, _ in
+            habitVM.fetchTasks(for: dateString)
         }
     }
 }
@@ -155,28 +172,11 @@ private struct DayCell: View {
     }
 }
 
-// MARK: - Task Timeline Container
-
-private struct TaskTimelineContainer: View {
-    let date: Date
-
-    private var dateString: String {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy-MM-dd"
-        return f.string(from: date)
-    }
-
-    var body: some View {
-        TaskTimelineBody(dateString: dateString)
-    }
-}
+// MARK: - Task Timeline Body
 
 private struct TaskTimelineBody: View {
-    @Query private var tasks: [HabitTask]
-
-    init(dateString: String) {
-        _tasks = Query(filter: #Predicate<HabitTask> { $0.date == dateString })
-    }
+    let tasks: [HabitTask]
+    let dateString: String
 
     var body: some View {
         ScrollView {
@@ -184,12 +184,13 @@ private struct TaskTimelineBody: View {
                 ForEach(TimePeriod.allCases, id: \.self) { period in
                     PeriodSectionView(
                         period: period,
-                        tasks: tasks.filter { $0.timePeriod == period }
+                        tasks: tasks.filter { $0.timePeriod == period },
+                        dateString: dateString
                     )
                 }
             }
             .padding(.top, 6)
-            .padding(.bottom, 100) // room above FAB
+            .padding(.bottom, 100)
         }
     }
 }
@@ -200,17 +201,18 @@ private struct PeriodSectionView: View {
     @EnvironmentObject var lang: LanguageManager
     let period: TimePeriod
     let tasks: [HabitTask]
+    let dateString: String
 
     @State private var isExpanded = true
 
     private var symbol: String {
         switch period {
-        case .imsak:  return "moon.stars"
-        case .gunes:  return "sunrise"
-        case .ogle:   return "sun.max"
-        case .ikindi: return "sun.haze"
-        case .aksam:  return "sunset"
-        case .yatsi:  return "moon.zzz"
+        case .fajr:    return "moon.stars"
+        case .shuruq:  return "sunrise"
+        case .dhuhr:   return "sun.max"
+        case .asr:     return "sun.haze"
+        case .maghrib: return "sunset"
+        case .isha:    return "moon.zzz"
         }
     }
 
@@ -281,7 +283,7 @@ private struct PeriodSectionView: View {
         } else {
             VStack(spacing: 8) {
                 ForEach(tasks) { task in
-                    TaskCard(task: task)
+                    TaskCard(task: task, currentDate: dateString)
                         .padding(.horizontal, 16)
                 }
             }
@@ -295,8 +297,9 @@ private struct PeriodSectionView: View {
 
 private struct TaskCard: View {
     @EnvironmentObject var lang: LanguageManager
+    @EnvironmentObject var habitVM: HabitViewModel
     let task: HabitTask
-    @Environment(\.modelContext) private var context
+    let currentDate: String
 
     @State private var showActionMenu = false
     @State private var showEditSheet = false
@@ -304,19 +307,7 @@ private struct TaskCard: View {
     @State private var showDeleteConfirm = false
     @State private var showSeriesDeleteDialog = false
 
-    private static let isoFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy-MM-dd"
-        return f
-    }()
-
     var body: some View {
-        if task.modelContext == nil { return AnyView(EmptyView()) }
-        return AnyView(taskContent)
-    }
-
-    @ViewBuilder
-    private var taskContent: some View {
         HStack(spacing: 12) {
             completionButton
             VStack(alignment: .leading, spacing: 3) {
@@ -357,9 +348,9 @@ private struct TaskCard: View {
         .contentShape(Rectangle())
         .onTapGesture { showActionMenu = true }
         .confirmationDialog(task.title, isPresented: $showActionMenu, titleVisibility: .visible) {
-            Button(lang.str(.habitCopy)) { makeCopy() }
+            Button(lang.str(.habitCopy)) { habitVM.copy(task) }
             Button(lang.str(.habitReschedule)) { showRescheduleSheet = true }
-            Button(lang.str(.habitTomorrow)) { rescheduleForTomorrow() }
+            Button(lang.str(.habitTomorrow)) { habitVM.rescheduleToTomorrow(task) }
             Button(lang.str(.habitEdit)) { showEditSheet = true }
             Button(lang.str(.habitDelete), role: .destructive) {
                 if task.seriesID != nil {
@@ -371,14 +362,16 @@ private struct TaskCard: View {
             Button(lang.str(.habitCancel), role: .cancel) {}
         }
         .alert(lang.str(.habitDeleteTaskTitle), isPresented: $showDeleteConfirm) {
-            Button(lang.str(.habitDelete), role: .destructive) { deleteTask() }
+            Button(lang.str(.habitDelete), role: .destructive) { habitVM.delete(task) }
             Button(lang.str(.habitCancel), role: .cancel) {}
         } message: {
             Text(lang.str(.habitDeleteConfirm).replacingOccurrences(of: "%@", with: task.title))
         }
         .confirmationDialog(lang.str(.habitDeleteRecurringTitle), isPresented: $showSeriesDeleteDialog, titleVisibility: .visible) {
-            Button(lang.str(.habitDeleteOnlyThis), role: .destructive) { deleteTask() }
-            Button(lang.str(.habitDeleteAllSeries), role: .destructive) { deleteAllInSeries() }
+            Button(lang.str(.habitDeleteOnlyThis), role: .destructive) { habitVM.delete(task) }
+            Button(lang.str(.habitDeleteAllSeries), role: .destructive) {
+                if let sid = task.seriesID { habitVM.deleteSeries(seriesId: sid) }
+            }
             Button(lang.str(.habitCancel), role: .cancel) {}
         } message: {
             Text(lang.str(.habitDeleteRecurringMessage))
@@ -400,8 +393,7 @@ private struct TaskCard: View {
     private var completionButton: some View {
         Button {
             withAnimation(.easeInOut(duration: 0.15)) {
-                task.isCompleted.toggle()
-                try? context.save()
+                habitVM.toggleCompletion(task)
             }
         } label: {
             ZStack {
@@ -421,50 +413,20 @@ private struct TaskCard: View {
         }
         .buttonStyle(.plain)
     }
-
-    private func makeCopy() {
-        let repo = TaskRepository(context: context)
-        try? repo.create(
-            title: task.title,
-            date: task.date,
-            timePeriod: task.timePeriod,
-            duration: task.duration,
-            notes: task.notes
-        )
-    }
-
-    private func rescheduleForTomorrow() {
-        guard let taskDate = Self.isoFormatter.date(from: task.date),
-              let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: taskDate)
-        else { return }
-        task.date = Self.isoFormatter.string(from: tomorrow)
-        try? context.save()
-    }
-
-    private func deleteTask() {
-        let repo = TaskRepository(context: context)
-        try? repo.delete(task)
-    }
-
-    private func deleteAllInSeries() {
-        guard let sid = task.seriesID else { return }
-        let repo = TaskRepository(context: context)
-        try? repo.deleteAllInSeries(seriesID: sid)
-    }
 }
 
 // MARK: - Add Task Sheet
 
 private struct AddTaskSheet: View {
     @EnvironmentObject var lang: LanguageManager
+    @EnvironmentObject var habitVM: HabitViewModel
     let defaultDate: Date
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var context
 
     @State private var title = ""
     @State private var selectedDate: Date
-    @State private var selectedPeriod: TimePeriod = .ogle
+    @State private var selectedPeriod: TimePeriod = .dhuhr
     @State private var selectedDuration = 30
     @State private var selectedRepeat: RepeatFrequency = .none
     @State private var notes = ""
@@ -694,8 +656,7 @@ private struct AddTaskSheet: View {
         guard isTitleValid else { return }
         let dateString = Self.isoFormatter.string(from: selectedDate)
         let trimmedNotes = notes.trimmingCharacters(in: .whitespaces)
-        let repo = TaskRepository(context: context)
-        try? repo.createWithRepeat(
+        habitVM.create(
             title: title.trimmingCharacters(in: .whitespaces),
             date: dateString,
             timePeriod: selectedPeriod,
@@ -711,10 +672,10 @@ private struct AddTaskSheet: View {
 
 private struct EditTaskSheet: View {
     @EnvironmentObject var lang: LanguageManager
+    @EnvironmentObject var habitVM: HabitViewModel
     let task: HabitTask
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var context
 
     @State private var title: String
     @State private var selectedDate: Date
@@ -937,17 +898,14 @@ private struct EditTaskSheet: View {
         guard isTitleValid else { return }
         let dateString = Self.isoFormatter.string(from: selectedDate)
         let trimmedNotes = notes.trimmingCharacters(in: .whitespaces)
-        let repo = TaskRepository(context: context)
-        try? repo.update(
-            task,
-            title: title.trimmingCharacters(in: .whitespaces),
-            date: dateString,
-            timePeriod: selectedPeriod,
-            duration: selectedDuration,
-            notes: trimmedNotes.isEmpty ? nil : trimmedNotes,
-            isCompleted: task.isCompleted,
-            repeatFrequency: selectedRepeat
-        )
+        var updated = task
+        updated.title = title.trimmingCharacters(in: .whitespaces)
+        updated.date = dateString
+        updated.timePeriod = selectedPeriod
+        updated.duration = selectedDuration
+        updated.notes = trimmedNotes.isEmpty ? nil : trimmedNotes
+        updated.repeatFrequency = selectedRepeat
+        habitVM.update(updated)
         dismiss()
     }
 }
@@ -956,10 +914,10 @@ private struct EditTaskSheet: View {
 
 private struct RescheduleSheet: View {
     @EnvironmentObject var lang: LanguageManager
+    @EnvironmentObject var habitVM: HabitViewModel
     let task: HabitTask
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var context
 
     @State private var selectedDate: Date
     @State private var selectedPeriod: TimePeriod
@@ -1072,9 +1030,8 @@ private struct RescheduleSheet: View {
     }
 
     private func save() {
-        task.date = Self.isoFormatter.string(from: selectedDate)
-        task.timePeriod = selectedPeriod
-        try? context.save()
+        let newDate = Self.isoFormatter.string(from: selectedDate)
+        habitVM.reschedule(task, to: newDate, period: selectedPeriod)
         dismiss()
     }
 }
@@ -1106,27 +1063,18 @@ private struct SheetFormField<Content: View>: View {
 private struct SelectionPill: View {
     let label: String
     let isSelected: Bool
-    let onTap: () -> Void
+    let action: () -> Void
 
     var body: some View {
-        Button(action: onTap) {
+        Button(action: action) {
             Text(label)
-                .font(.system(size: 13,
-                              weight: isSelected ? .semibold : .regular,
-                              design: .rounded))
+                .font(.system(size: 13, design: .rounded))
                 .foregroundStyle(isSelected ? Makam.bg : Makam.sand)
                 .padding(.horizontal, 14)
-                .padding(.vertical, 8)
+                .padding(.vertical, 7)
                 .background(
                     Capsule()
-                        .fill(isSelected ? Makam.gold : Color.white.opacity(0.07))
-                        .overlay(
-                            Capsule()
-                                .strokeBorder(
-                                    Makam.gold.opacity(isSelected ? 0 : 0.22),
-                                    lineWidth: 0.5
-                                )
-                        )
+                        .fill(isSelected ? Makam.gold : Makam.goldDim.opacity(0.6))
                 )
         }
         .buttonStyle(.plain)

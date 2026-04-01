@@ -110,6 +110,34 @@ class SettingsViewModel: ObservableObject {
         let defaults = UserDefaults.standard
         if let district = defaults.savedDistrictName, !district.isEmpty { return district }
         if let state    = defaults.savedStateName,    !state.isEmpty    { return state }
-        return "Ankara"
+        return "İstanbul"
+    }
+
+    // MARK: - Seed Default Location (Istanbul) on First Launch
+
+    static func setDefaultLocationIfNeeded() async {
+        guard UserDefaults.standard.savedDistrictId == nil else { return }
+        do {
+            let countries = try await ImsakiyemService.fetchCountries()
+            guard let turkey = countries.first(where: {
+                $0.name.lowercased().contains("türkiye") || $0.name.lowercased().contains("turkey")
+            }) else { return }
+
+            let states = try await ImsakiyemService.fetchStates(countryId: turkey.id)
+            guard let istanbul = states.first(where: {
+                $0.name.lowercased().contains("istanbul") || $0.name.lowercased().contains("İstanbul")
+            }) else { return }
+
+            let districts = try await ImsakiyemService.fetchDistricts(stateId: istanbul.id)
+            guard let district = districts.first else { return }
+
+            let defaults = UserDefaults.standard
+            defaults.set(district.id,   forKey: UserDefaults.districtIdKey)
+            defaults.set(district.name, forKey: UserDefaults.districtNameKey)
+            defaults.set(istanbul.name, forKey: UserDefaults.stateNameKey)
+            defaults.set(turkey.name,   forKey: UserDefaults.countryNameKey)
+        } catch {
+            // Silent failure — user can still select location manually in Settings
+        }
     }
 }

@@ -47,7 +47,7 @@ enum LK: String {
     // Tabs
     case tabHabits, tabPrayerTimes, tabQibla, tabSettings
     // Prayer names
-    case prayerImsak, prayerGunes, prayerOgle, prayerIkindi, prayerAksam, prayerYatsi
+    case prayerFajr, prayerShuruq, prayerDhuhr, prayerAsr, prayerMaghrib, prayerIsha
     // ContentView
     case contentToday, contentRetry, contentUntil
     // Settings
@@ -113,7 +113,7 @@ final class LanguageManager: ObservableObject {
     }
 
     func prayerName(forId id: Int) -> String {
-        let keys: [LK] = [.prayerImsak, .prayerGunes, .prayerOgle, .prayerIkindi, .prayerAksam, .prayerYatsi]
+        let keys: [LK] = [.prayerFajr, .prayerShuruq, .prayerDhuhr, .prayerAsr, .prayerMaghrib, .prayerIsha]
         guard id >= 0 && id < keys.count else { return "" }
         return str(keys[id])
     }
@@ -135,12 +135,12 @@ final class LanguageManager: ObservableObject {
 
     func timePeriodName(_ period: TimePeriod) -> String {
         switch period {
-        case .imsak:  return str(.prayerImsak)
-        case .gunes:  return str(.prayerGunes)
-        case .ogle:   return str(.prayerOgle)
-        case .ikindi: return str(.prayerIkindi)
-        case .aksam:  return str(.prayerAksam)
-        case .yatsi:  return str(.prayerYatsi)
+        case .fajr:    return str(.prayerFajr)
+        case .shuruq:  return str(.prayerShuruq)
+        case .dhuhr:   return str(.prayerDhuhr)
+        case .asr:     return str(.prayerAsr)
+        case .maghrib: return str(.prayerMaghrib)
+        case .isha:    return str(.prayerIsha)
         }
     }
 
@@ -170,12 +170,12 @@ private let translations: [AppLanguage: T] = [
         .tabQibla: "Kıble",
         .tabSettings: "Ayarlar",
 
-        .prayerImsak: "İmsak",
-        .prayerGunes: "Güneş",
-        .prayerOgle: "Öğle",
-        .prayerIkindi: "İkindi",
-        .prayerAksam: "Akşam",
-        .prayerYatsi: "Yatsı",
+        .prayerFajr: "İmsak",
+        .prayerShuruq: "Güneş",
+        .prayerDhuhr: "Öğle",
+        .prayerAsr: "İkindi",
+        .prayerMaghrib: "Akşam",
+        .prayerIsha: "Yatsı",
 
         .contentToday: "BUGÜN",
         .contentRetry: "Tekrar Dene",
@@ -262,12 +262,12 @@ private let translations: [AppLanguage: T] = [
         .tabQibla: "Qibla",
         .tabSettings: "Settings",
 
-        .prayerImsak: "Fajr",
-        .prayerGunes: "Sunrise",
-        .prayerOgle: "Dhuhr",
-        .prayerIkindi: "Asr",
-        .prayerAksam: "Maghrib",
-        .prayerYatsi: "Isha",
+        .prayerFajr: "Fajr",
+        .prayerShuruq: "Sunrise",
+        .prayerDhuhr: "Dhuhr",
+        .prayerAsr: "Asr",
+        .prayerMaghrib: "Maghrib",
+        .prayerIsha: "Isha",
 
         .contentToday: "TODAY",
         .contentRetry: "Try Again",
@@ -354,12 +354,12 @@ private let translations: [AppLanguage: T] = [
         .tabQibla: "القبلة",
         .tabSettings: "الإعدادات",
 
-        .prayerImsak: "الفجر",
-        .prayerGunes: "الشروق",
-        .prayerOgle: "الظهر",
-        .prayerIkindi: "العصر",
-        .prayerAksam: "المغرب",
-        .prayerYatsi: "العشاء",
+        .prayerFajr: "الفجر",
+        .prayerShuruq: "الشروق",
+        .prayerDhuhr: "الظهر",
+        .prayerAsr: "العصر",
+        .prayerMaghrib: "المغرب",
+        .prayerIsha: "العشاء",
 
         .contentToday: "اليوم",
         .contentRetry: "إعادة المحاولة",
@@ -446,12 +446,12 @@ private let translations: [AppLanguage: T] = [
         .tabQibla: "Qibla",
         .tabSettings: "Einstellungen",
 
-        .prayerImsak: "Fajr",
-        .prayerGunes: "Sonnenaufgang",
-        .prayerOgle: "Dhuhr",
-        .prayerIkindi: "Asr",
-        .prayerAksam: "Maghrib",
-        .prayerYatsi: "Isha",
+        .prayerFajr: "Fajr",
+        .prayerShuruq: "Sonnenaufgang",
+        .prayerDhuhr: "Dhuhr",
+        .prayerAsr: "Asr",
+        .prayerMaghrib: "Maghrib",
+        .prayerIsha: "Isha",
 
         .contentToday: "HEUTE",
         .contentRetry: "Erneut versuchen",
@@ -538,12 +538,12 @@ private let translations: [AppLanguage: T] = [
         .tabQibla: "Qibla",
         .tabSettings: "Paramètres",
 
-        .prayerImsak: "Fajr",
-        .prayerGunes: "Lever du soleil",
-        .prayerOgle: "Dhuhr",
-        .prayerIkindi: "Asr",
-        .prayerAksam: "Maghrib",
-        .prayerYatsi: "Isha",
+        .prayerFajr: "Fajr",
+        .prayerShuruq: "Lever du soleil",
+        .prayerDhuhr: "Dhuhr",
+        .prayerAsr: "Asr",
+        .prayerMaghrib: "Maghrib",
+        .prayerIsha: "Isha",
 
         .contentToday: "AUJOURD'HUI",
         .contentRetry: "Réessayer",
@@ -630,12 +630,12 @@ private let translations: [AppLanguage: T] = [
         .tabQibla: "Кибла",
         .tabSettings: "Настройки",
 
-        .prayerImsak: "Фаджр",
-        .prayerGunes: "Восход",
-        .prayerOgle: "Зухр",
-        .prayerIkindi: "Аср",
-        .prayerAksam: "Магриб",
-        .prayerYatsi: "Иша",
+        .prayerFajr: "Фаджр",
+        .prayerShuruq: "Восход",
+        .prayerDhuhr: "Зухр",
+        .prayerAsr: "Аср",
+        .prayerMaghrib: "Магриб",
+        .prayerIsha: "Иша",
 
         .contentToday: "СЕГОДНЯ",
         .contentRetry: "Повторить",
@@ -722,12 +722,12 @@ private let translations: [AppLanguage: T] = [
         .tabQibla: "Kiblat",
         .tabSettings: "Pengaturan",
 
-        .prayerImsak: "Subuh",
-        .prayerGunes: "Terbit",
-        .prayerOgle: "Zuhur",
-        .prayerIkindi: "Ashar",
-        .prayerAksam: "Maghrib",
-        .prayerYatsi: "Isya",
+        .prayerFajr: "Subuh",
+        .prayerShuruq: "Terbit",
+        .prayerDhuhr: "Zuhur",
+        .prayerAsr: "Ashar",
+        .prayerMaghrib: "Maghrib",
+        .prayerIsha: "Isya",
 
         .contentToday: "HARI INI",
         .contentRetry: "Coba Lagi",
