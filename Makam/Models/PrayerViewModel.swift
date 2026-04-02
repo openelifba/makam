@@ -44,10 +44,9 @@ class PrayerViewModel: ObservableObject {
             let today: DailyPrayerSchedule
 
             if let districtId = UserDefaults.standard.savedDistrictId {
-                // Fetch from Imsakiyem API using the saved district
-                let entry = try await ImsakiyemService.fetchDailyPrayerTimes(districtId: districtId)
-                guard let schedule = ImsakiyemService.toDailySchedule(from: entry) else {
-                    throw ImsakiyemServiceError.noDataForToday
+                let vakit = try await EzanVaktiService.fetchTodayPrayerTimes(districtId: districtId)
+                guard let schedule = EzanVaktiService.toDailySchedule(from: vakit) else {
+                    throw EzanVaktiServiceError.noDataForToday
                 }
                 today = schedule
             } else {

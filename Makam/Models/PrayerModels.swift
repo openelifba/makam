@@ -1,51 +1,7 @@
 // MARK: - PrayerModels.swift
-// Makam — Data layer models for Diyanet prayer time API.
-//
-// Architecture note: Two distinct model layers are intentional.
-//   • `DailyPrayerResponse` is a raw Codable that mirrors the Diyanet JSON exactly.
-//   • `Prayer` is the domain model the UI and widget consume — it carries resolved
-//     `Date` values so views never perform string→Date parsing.
+// Makam — Domain models for prayer times.
 
 import Foundation
-
-// MARK: - Aladhan API Response Models
-
-struct AladhanAPIResponse: Codable {
-    let code: Int
-    let status: String
-    let data: [AladhanDayData]
-}
-
-struct AladhanDayData: Codable {
-    let timings: AladhanTimings
-    let date: AladhanDate
-}
-
-struct AladhanTimings: Codable {
-    let fajr:    String
-    let sunrise: String
-    let dhuhr:   String
-    let asr:     String
-    let sunset:  String
-    let maghrib: String
-    let isha:    String
-    let imsak:   String
-
-    enum CodingKeys: String, CodingKey {
-        case fajr    = "Fajr"
-        case sunrise = "Sunrise"
-        case dhuhr   = "Dhuhr"
-        case asr     = "Asr"
-        case sunset  = "Sunset"
-        case maghrib = "Maghrib"
-        case isha    = "Isha"
-        case imsak   = "Imsak"
-    }
-}
-
-struct AladhanDate: Codable {
-    let timestamp: String
-}
 
 // MARK: - Domain Model
 

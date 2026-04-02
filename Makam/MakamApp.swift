@@ -15,7 +15,7 @@ struct MakamApp: App {
                 .environmentObject(habitViewModel)
                 .task {
                     viewModel.language = languageManager.current
-                    await SettingsViewModel.setDefaultLocationIfNeeded()
+                    SettingsViewModel.setDefaultLocationIfNeeded()
                     await viewModel.fetchPrayers()
                 }
                 .onChange(of: languageManager.current) { _, newLanguage in

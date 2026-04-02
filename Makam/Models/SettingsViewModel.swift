@@ -21,21 +21,21 @@ class SettingsViewModel: ObservableObject {
 
     // MARK: Data
 
-    @Published var countries: [ImsakiyemCountry] = []
-    @Published var states: [ImsakiyemState]       = []
-    @Published var districts: [ImsakiyemDistrict] = []
+    @Published var countries: [EzanVaktiUlke] = []
+    @Published var cities: [EzanVaktiSehir]   = []
+    @Published var districts: [EzanVaktiIlce] = []
 
     // MARK: Selection
 
-    @Published var selectedCountry: ImsakiyemCountry?
-    @Published var selectedState: ImsakiyemState?
-    @Published var selectedDistrict: ImsakiyemDistrict?
+    @Published var selectedCountry: EzanVaktiUlke?
+    @Published var selectedCity: EzanVaktiSehir?
+    @Published var selectedDistrict: EzanVaktiIlce?
 
     // MARK: UI State
 
-    @Published var isLoadingCountries  = false
-    @Published var isLoadingStates     = false
-    @Published var isLoadingDistricts  = false
+    @Published var isLoadingCountries = false
+    @Published var isLoadingCities    = false
+    @Published var isLoadingDistricts = false
     @Published var errorMessage: String?
 
     // MARK: - Load Countries
@@ -44,43 +44,43 @@ class SettingsViewModel: ObservableObject {
         isLoadingCountries = true
         errorMessage = nil
         do {
-            countries = try await ImsakiyemService.fetchCountries()
+            countries = try await EzanVaktiService.fetchCountries()
         } catch {
             errorMessage = error.localizedDescription
         }
         isLoadingCountries = false
     }
 
-    // MARK: - Select Country → load its states
+    // MARK: - Select Country → load its cities
 
-    func selectCountry(_ country: ImsakiyemCountry) async {
+    func selectCountry(_ country: EzanVaktiUlke) async {
         selectedCountry = country
-        selectedState = nil
+        selectedCity = nil
         selectedDistrict = nil
-        states = []
+        cities = []
         districts = []
 
-        isLoadingStates = true
+        isLoadingCities = true
         errorMessage = nil
         do {
-            states = try await ImsakiyemService.fetchStates(countryId: country.id)
+            cities = try await EzanVaktiService.fetchCities(countryId: country.id)
         } catch {
             errorMessage = error.localizedDescription
         }
-        isLoadingStates = false
+        isLoadingCities = false
     }
 
-    // MARK: - Select State → load its districts
+    // MARK: - Select City → load its districts
 
-    func selectState(_ state: ImsakiyemState) async {
-        selectedState = state
+    func selectCity(_ city: EzanVaktiSehir) async {
+        selectedCity = city
         selectedDistrict = nil
         districts = []
 
         isLoadingDistricts = true
         errorMessage = nil
         do {
-            districts = try await ImsakiyemService.fetchDistricts(stateId: state.id)
+            districts = try await EzanVaktiService.fetchDistricts(cityId: city.id)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -89,7 +89,7 @@ class SettingsViewModel: ObservableObject {
 
     // MARK: - Select District
 
-    func selectDistrict(_ district: ImsakiyemDistrict) {
+    func selectDistrict(_ district: EzanVaktiIlce) {
         selectedDistrict = district
     }
 
@@ -98,9 +98,9 @@ class SettingsViewModel: ObservableObject {
     func saveSettings() {
         guard let district = selectedDistrict else { return }
         let defaults = UserDefaults.standard
-        defaults.set(district.id,              forKey: UserDefaults.districtIdKey)
-        defaults.set(district.name,            forKey: UserDefaults.districtNameKey)
-        defaults.set(selectedState?.name ?? "", forKey: UserDefaults.stateNameKey)
+        defaults.set(district.id,               forKey: UserDefaults.districtIdKey)
+        defaults.set(district.name,             forKey: UserDefaults.districtNameKey)
+        defaults.set(selectedCity?.name ?? "",  forKey: UserDefaults.stateNameKey)
         defaults.set(selectedCountry?.name ?? "", forKey: UserDefaults.countryNameKey)
     }
 
@@ -109,35 +109,18 @@ class SettingsViewModel: ObservableObject {
     static func savedLocationLabel() -> String {
         let defaults = UserDefaults.standard
         if let district = defaults.savedDistrictName, !district.isEmpty { return district }
-        if let state    = defaults.savedStateName,    !state.isEmpty    { return state }
+        if let city     = defaults.savedStateName,    !city.isEmpty     { return city }
         return "İstanbul"
     }
 
     // MARK: - Seed Default Location (Istanbul) on First Launch
 
-    static func setDefaultLocationIfNeeded() async {
+    static func setDefaultLocationIfNeeded() {
         guard UserDefaults.standard.savedDistrictId == nil else { return }
-        do {
-            let countries = try await ImsakiyemService.fetchCountries()
-            guard let turkey = countries.first(where: {
-                $0.name.lowercased().contains("türkiye") || $0.name.lowercased().contains("turkey")
-            }) else { return }
-
-            let states = try await ImsakiyemService.fetchStates(countryId: turkey.id)
-            guard let istanbul = states.first(where: {
-                $0.name.lowercased().contains("istanbul") || $0.name.lowercased().contains("İstanbul")
-            }) else { return }
-
-            let districts = try await ImsakiyemService.fetchDistricts(stateId: istanbul.id)
-            guard let district = districts.first else { return }
-
-            let defaults = UserDefaults.standard
-            defaults.set(district.id,   forKey: UserDefaults.districtIdKey)
-            defaults.set(district.name, forKey: UserDefaults.districtNameKey)
-            defaults.set(istanbul.name, forKey: UserDefaults.stateNameKey)
-            defaults.set(turkey.name,   forKey: UserDefaults.countryNameKey)
-        } catch {
-            // Silent failure — user can still select location manually in Settings
-        }
+        let defaults = UserDefaults.standard
+        defaults.set("9541",      forKey: UserDefaults.districtIdKey)
+        defaults.set("İstanbul",  forKey: UserDefaults.districtNameKey)
+        defaults.set("İstanbul",  forKey: UserDefaults.stateNameKey)
+        defaults.set("Türkiye",   forKey: UserDefaults.countryNameKey)
     }
 }

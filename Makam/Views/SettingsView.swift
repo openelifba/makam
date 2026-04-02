@@ -196,11 +196,11 @@ private struct CountryPickerView: View {
 
     @State private var searchText = ""
 
-    private var filtered: [ImsakiyemCountry] {
+    private var filtered: [EzanVaktiUlke] {
         guard !searchText.isEmpty else { return vm.countries }
         return vm.countries.filter {
             $0.name.localizedCaseInsensitiveContains(searchText) ||
-            ($0.nameEn ?? "").localizedCaseInsensitiveContains(searchText)
+            $0.nameEn.localizedCaseInsensitiveContains(searchText)
         }
     }
 
@@ -217,7 +217,7 @@ private struct CountryPickerView: View {
                 } else {
                     List(filtered) { country in
                         NavigationLink(
-                            destination: StatePickerView(
+                            destination: CityPickerView(
                                 vm: vm,
                                 country: country,
                                 onSave: onSave
@@ -248,21 +248,21 @@ private struct CountryPickerView: View {
     }
 }
 
-// MARK: - State / City Picker
+// MARK: - City Picker
 
-private struct StatePickerView: View {
+private struct CityPickerView: View {
     @EnvironmentObject var lang: LanguageManager
     @ObservedObject var vm: SettingsViewModel
-    let country: ImsakiyemCountry
+    let country: EzanVaktiUlke
     let onSave: () -> Void
 
     @State private var searchText = ""
 
-    private var filtered: [ImsakiyemState] {
-        guard !searchText.isEmpty else { return vm.states }
-        return vm.states.filter {
+    private var filtered: [EzanVaktiSehir] {
+        guard !searchText.isEmpty else { return vm.cities }
+        return vm.cities.filter {
             $0.name.localizedCaseInsensitiveContains(searchText) ||
-            ($0.nameEn ?? "").localizedCaseInsensitiveContains(searchText)
+            $0.nameEn.localizedCaseInsensitiveContains(searchText)
         }
     }
 
@@ -271,25 +271,25 @@ private struct StatePickerView: View {
             MakamStyle.bg.ignoresSafeArea()
 
             Group {
-                if vm.isLoadingStates {
+                if vm.isLoadingCities {
                     ProgressView()
                         .tint(MakamStyle.gold)
-                } else if vm.states.isEmpty {
+                } else if vm.cities.isEmpty {
                     EmptyStateView(message: lang.str(.settingsCityError))
                 } else {
-                    List(filtered) { state in
+                    List(filtered) { city in
                         NavigationLink(
                             destination: DistrictPickerView(
                                 vm: vm,
-                                state: state,
+                                city: city,
                                 onSave: onSave
                             )
-                            .task { await vm.selectState(state) }
+                            .task { await vm.selectCity(city) }
                         ) {
                             LocationRow(
-                                name: state.name,
-                                subtitle: state.nameEn,
-                                isSelected: vm.selectedState?.id == state.id
+                                name: city.name,
+                                subtitle: city.nameEn,
+                                isSelected: vm.selectedCity?.id == city.id
                             )
                         }
                         .listRowBackground(MakamStyle.rowBg)
@@ -315,16 +315,16 @@ private struct StatePickerView: View {
 private struct DistrictPickerView: View {
     @EnvironmentObject var lang: LanguageManager
     @ObservedObject var vm: SettingsViewModel
-    let state: ImsakiyemState
+    let city: EzanVaktiSehir
     let onSave: () -> Void
 
     @State private var searchText = ""
 
-    private var filtered: [ImsakiyemDistrict] {
+    private var filtered: [EzanVaktiIlce] {
         guard !searchText.isEmpty else { return vm.districts }
         return vm.districts.filter {
             $0.name.localizedCaseInsensitiveContains(searchText) ||
-            ($0.nameEn ?? "").localizedCaseInsensitiveContains(searchText)
+            $0.nameEn.localizedCaseInsensitiveContains(searchText)
         }
     }
 
