@@ -1,6 +1,9 @@
 import Foundation
+import WidgetKit
 
-// MARK: - UserDefaults Keys
+// MARK: - App Group
+
+private let makamAppGroupID = "group.com.yaysoftwares.makam"
 
 extension UserDefaults {
     static let districtIdKey      = "makam.selectedDistrictId"
@@ -12,6 +15,11 @@ extension UserDefaults {
     var savedDistrictName: String? { string(forKey: Self.districtNameKey) }
     var savedStateName: String?    { string(forKey: Self.stateNameKey) }
     var savedCountryName: String?  { string(forKey: Self.countryNameKey) }
+
+    /// Shared suite used by both the app and the widget extension.
+    static var appGroup: UserDefaults {
+        UserDefaults(suiteName: makamAppGroupID) ?? .standard
+    }
 }
 
 // MARK: - SettingsViewModel
@@ -97,11 +105,13 @@ class SettingsViewModel: ObservableObject {
 
     func saveSettings() {
         guard let district = selectedDistrict else { return }
-        let defaults = UserDefaults.standard
-        defaults.set(district.id,               forKey: UserDefaults.districtIdKey)
-        defaults.set(district.name,             forKey: UserDefaults.districtNameKey)
-        defaults.set(selectedCity?.name ?? "",  forKey: UserDefaults.stateNameKey)
-        defaults.set(selectedCountry?.name ?? "", forKey: UserDefaults.countryNameKey)
+        for defaults in [UserDefaults.standard, UserDefaults.appGroup] {
+            defaults.set(district.id,                forKey: UserDefaults.districtIdKey)
+            defaults.set(district.name,              forKey: UserDefaults.districtNameKey)
+            defaults.set(selectedCity?.name ?? "",   forKey: UserDefaults.stateNameKey)
+            defaults.set(selectedCountry?.name ?? "", forKey: UserDefaults.countryNameKey)
+        }
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     // MARK: - Read Current Saved Location Name (static, no instance needed)
@@ -117,10 +127,11 @@ class SettingsViewModel: ObservableObject {
 
     static func setDefaultLocationIfNeeded() {
         guard UserDefaults.standard.savedDistrictId == nil else { return }
-        let defaults = UserDefaults.standard
-        defaults.set("9541",      forKey: UserDefaults.districtIdKey)
-        defaults.set("İstanbul",  forKey: UserDefaults.districtNameKey)
-        defaults.set("İstanbul",  forKey: UserDefaults.stateNameKey)
-        defaults.set("Türkiye",   forKey: UserDefaults.countryNameKey)
+        for defaults in [UserDefaults.standard, UserDefaults.appGroup] {
+            defaults.set("9541",      forKey: UserDefaults.districtIdKey)
+            defaults.set("İstanbul",  forKey: UserDefaults.districtNameKey)
+            defaults.set("İstanbul",  forKey: UserDefaults.stateNameKey)
+            defaults.set("Türkiye",   forKey: UserDefaults.countryNameKey)
+        }
     }
 }

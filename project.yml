@@ -22,3 +22,39 @@ targets:
         DEVELOPMENT_TEAM: RAYY6M6L8W
     entitlements:
       path: Makam/Makam.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.yaysoftwares.makam
+    dependencies:
+      - target: MakamWidget
+        embed: true
+        codeSign: true
+
+  MakamWidget:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: MakamWidget
+      - path: Makam/Models/PrayerModels.swift
+        excludes: []
+      - path: Makam/Services/PrayerCalculator.swift
+        excludes: []
+      - path: Makam/Services/EzanVaktiService.swift
+        excludes: []
+      - path: Makam/Models/SettingsViewModel.swift
+        excludes: []
+    settings:
+      base:
+        INFOPLIST_FILE: MakamWidget/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.yaysoftwares.makam.widget
+        SWIFT_VERSION: 5.0
+        CURRENT_PROJECT_VERSION: 1
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: RAYY6M6L8W
+        SKIP_INSTALL: YES
+    entitlements:
+      path: MakamWidget/MakamWidget.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.yaysoftwares.makam
