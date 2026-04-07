@@ -34,15 +34,23 @@ struct HabitView: View {
                 .padding(.bottom, 16)
         }
         .sheet(isPresented: $showAddTask) {
-            AddTaskSheet(defaultDate: selectedDate)
-                .presentationDetents([.fraction(0.80), .large])
-                .presentationBackground(Makam.bg)
-                .presentationDragIndicator(.visible)
+            if #available(iOS 16.4, *) {
+                AddTaskSheet(defaultDate: selectedDate)
+                    .presentationDetents([.fraction(0.80), .large])
+                    .presentationBackground(Makam.bg)
+                    .presentationDragIndicator(.visible)
+            } else if #available(iOS 16, *) {
+                AddTaskSheet(defaultDate: selectedDate)
+                    .presentationDetents([.fraction(0.80), .large])
+                    .presentationDragIndicator(.visible)
+            } else {
+                AddTaskSheet(defaultDate: selectedDate)
+            }
         }
         .onAppear {
             habitVM.fetchTasks(for: dateString)
         }
-        .onChange(of: selectedDate) { _, _ in
+        .onChange(of: selectedDate) { _ in
             habitVM.fetchTasks(for: dateString)
         }
     }
@@ -114,7 +122,7 @@ private struct WeekCalendarStrip: View {
                     .padding(.vertical, 10)
                 }
                 .onAppear { proxy.scrollTo(today, anchor: .center) }
-                .onChange(of: selectedDate) { _, date in
+                .onChange(of: selectedDate) { date in
                     withAnimation(.easeInOut(duration: 0.3)) {
                         proxy.scrollTo(calendar.startOfDay(for: date), anchor: .center)
                     }
@@ -377,16 +385,32 @@ private struct TaskCard: View {
             Text(lang.str(.habitDeleteRecurringMessage))
         }
         .sheet(isPresented: $showEditSheet) {
-            EditTaskSheet(task: task)
-                .presentationDetents([.fraction(0.80), .large])
-                .presentationBackground(Makam.bg)
-                .presentationDragIndicator(.visible)
+            if #available(iOS 16.4, *) {
+                EditTaskSheet(task: task)
+                    .presentationDetents([.fraction(0.80), .large])
+                    .presentationBackground(Makam.bg)
+                    .presentationDragIndicator(.visible)
+            } else if #available(iOS 16, *) {
+                EditTaskSheet(task: task)
+                    .presentationDetents([.fraction(0.80), .large])
+                    .presentationDragIndicator(.visible)
+            } else {
+                EditTaskSheet(task: task)
+            }
         }
         .sheet(isPresented: $showRescheduleSheet) {
-            RescheduleSheet(task: task)
-                .presentationDetents([.medium])
-                .presentationBackground(Makam.bg)
-                .presentationDragIndicator(.visible)
+            if #available(iOS 16.4, *) {
+                RescheduleSheet(task: task)
+                    .presentationDetents([.medium])
+                    .presentationBackground(Makam.bg)
+                    .presentationDragIndicator(.visible)
+            } else if #available(iOS 16, *) {
+                RescheduleSheet(task: task)
+                    .presentationDetents([.medium])
+                    .presentationDragIndicator(.visible)
+            } else {
+                RescheduleSheet(task: task)
+            }
         }
     }
 
@@ -616,7 +640,7 @@ private struct AddTaskSheet: View {
                     .font(.system(size: 14, design: .rounded))
                     .foregroundStyle(Makam.sand)
                     .tint(Makam.gold)
-                    .scrollContentBackground(.hidden)
+                    .modifier(HideScrollBackgroundModifier())
                     .frame(minHeight: 88)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)
@@ -860,7 +884,7 @@ private struct EditTaskSheet: View {
                     .font(.system(size: 14, design: .rounded))
                     .foregroundStyle(Makam.sand)
                     .tint(Makam.gold)
-                    .scrollContentBackground(.hidden)
+                    .modifier(HideScrollBackgroundModifier())
                     .frame(minHeight: 88)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)
@@ -1078,5 +1102,17 @@ private struct SelectionPill: View {
                 )
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Compatibility Modifiers
+
+private struct HideScrollBackgroundModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16, *) {
+            content.scrollContentBackground(.hidden)
+        } else {
+            content
+        }
     }
 }

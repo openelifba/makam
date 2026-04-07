@@ -18,22 +18,23 @@ struct SettingsView: View {
     @EnvironmentObject var prayerViewModel: PrayerViewModel
     @EnvironmentObject var lang: LanguageManager
     @StateObject private var vm = SettingsViewModel()
-    @State private var navigationPath = NavigationPath()
     @Binding var selectedTab: AppTab
+    @State private var navigationID = UUID()
 
     var body: some View {
-        NavigationStack(path: $navigationPath) {
+        NavigationView {
             SettingsRootView(
                 vm: vm,
-                navigationPath: $navigationPath,
                 onSave: {
                     vm.saveSettings()
                     Task { await prayerViewModel.fetchPrayers() }
-                    navigationPath = NavigationPath()
+                    navigationID = UUID()
                     selectedTab = .prayerTimes
                 }
             )
         }
+        .navigationViewStyle(.stack)
+        .id(navigationID)
         .task { await vm.loadCountries() }
     }
 }
@@ -44,7 +45,6 @@ private struct SettingsRootView: View {
     @EnvironmentObject var lang: LanguageManager
     @EnvironmentObject var prayerViewModel: PrayerViewModel
     @ObservedObject var vm: SettingsViewModel
-    @Binding var navigationPath: NavigationPath
     let onSave: () -> Void
 
     @State private var notificationsEnabled: Bool = NotificationService.isEnabled()
@@ -137,7 +137,7 @@ private struct SettingsRootView: View {
                     .tint(MakamStyle.gold)
                     .listRowBackground(MakamStyle.rowBg)
                     .listRowSeparatorTint(MakamStyle.sand.opacity(0.1))
-                    .onChange(of: notificationsEnabled) { _, newValue in
+                    .onChange(of: notificationsEnabled) { newValue in
                         if newValue {
                             Task {
                                 let granted = await NotificationService.requestAuthorization()
@@ -167,7 +167,7 @@ private struct SettingsRootView: View {
                 }
             }
             .listStyle(.insetGrouped)
-            .scrollContentBackground(.hidden)
+            .hideListBackground()
             .tint(MakamStyle.gold)
             .alert("", isPresented: $showPermissionAlert) {
                 Button("OK", role: .cancel) { }
@@ -182,8 +182,7 @@ private struct SettingsRootView: View {
         }
         .navigationTitle(lang.str(.tabSettings))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(MakamStyle.bg, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
+        .makamNavBarAppearance()
     }
 }
 
@@ -234,7 +233,7 @@ private struct CountryPickerView: View {
                         .listRowSeparatorTint(MakamStyle.sand.opacity(0.1))
                     }
                     .listStyle(.insetGrouped)
-                    .scrollContentBackground(.hidden)
+                    .hideListBackground()
                     .searchable(text: $searchText, prompt: lang.str(.settingsSearchCountry))
                     .tint(MakamStyle.gold)
                 }
@@ -242,8 +241,7 @@ private struct CountryPickerView: View {
         }
         .navigationTitle(lang.str(.settingsSelectCountry))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(MakamStyle.bg, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
+        .makamNavBarAppearance()
         .errorBanner(vm.errorMessage)
     }
 }
@@ -296,7 +294,7 @@ private struct CityPickerView: View {
                         .listRowSeparatorTint(MakamStyle.sand.opacity(0.1))
                     }
                     .listStyle(.insetGrouped)
-                    .scrollContentBackground(.hidden)
+                    .hideListBackground()
                     .searchable(text: $searchText, prompt: lang.str(.settingsSearchCity))
                     .tint(MakamStyle.gold)
                 }
@@ -304,8 +302,7 @@ private struct CityPickerView: View {
         }
         .navigationTitle(lang.str(.settingsSelectCity))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(MakamStyle.bg, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
+        .makamNavBarAppearance()
         .errorBanner(vm.errorMessage)
     }
 }
@@ -353,7 +350,7 @@ private struct DistrictPickerView: View {
                         .listRowSeparatorTint(MakamStyle.sand.opacity(0.1))
                     }
                     .listStyle(.insetGrouped)
-                    .scrollContentBackground(.hidden)
+                    .hideListBackground()
                     .searchable(text: $searchText, prompt: lang.str(.settingsSearchDistrict))
                     .tint(MakamStyle.gold)
                 }
@@ -361,8 +358,7 @@ private struct DistrictPickerView: View {
         }
         .navigationTitle(lang.str(.settingsSelectDistrict))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(MakamStyle.bg, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
+        .makamNavBarAppearance()
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button(lang.str(.settingsSave)) { onSave() }
@@ -451,5 +447,25 @@ private struct ErrorBannerModifier: ViewModifier {
 private extension View {
     func errorBanner(_ message: String?) -> some View {
         modifier(ErrorBannerModifier(message: message))
+    }
+
+    @ViewBuilder
+    func hideListBackground() -> some View {
+        if #available(iOS 16, *) {
+            self.scrollContentBackground(.hidden)
+        } else {
+            self
+        }
+    }
+
+    @ViewBuilder
+    func makamNavBarAppearance() -> some View {
+        if #available(iOS 16, *) {
+            self
+                .toolbarBackground(MakamStyle.bg, for: .navigationBar)
+                .toolbarColorScheme(.dark, for: .navigationBar)
+        } else {
+            self
+        }
     }
 }

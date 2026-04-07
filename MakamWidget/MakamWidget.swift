@@ -340,11 +340,23 @@ struct MakamPrayerWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: PrayerTimelineProvider()) { entry in
             MakamWidgetEntryView(entry: entry)
-                .containerBackground(W.bg, for: .widget)
+                .modifier(WidgetBackgroundModifier())
         }
         .configurationDisplayName("Namaz Vakitleri")
         .description("Bir sonraki namaz vaktini ve günün tüm vakitlerini gösterir.")
         .supportedFamilies([.systemSmall, .systemMedium])
+    }
+}
+
+// MARK: - Compatibility Modifiers
+
+private struct WidgetBackgroundModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 17, *) {
+            content.containerBackground(W.bg, for: .widget)
+        } else {
+            content.background(W.bg)
+        }
     }
 }
 

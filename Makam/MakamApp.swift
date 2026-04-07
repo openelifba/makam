@@ -18,14 +18,14 @@ struct MakamApp: App {
                     SettingsViewModel.setDefaultLocationIfNeeded()
                     await viewModel.fetchPrayers()
                 }
-                .onChange(of: languageManager.current) { _, newLanguage in
+                .onChange(of: languageManager.current) { newLanguage in
                     viewModel.language = newLanguage
                     if let schedule = viewModel.schedule {
                         NotificationService.scheduleNotifications(for: schedule, language: newLanguage)
                     }
                 }
         }
-        .onChange(of: scenePhase) { oldPhase, newPhase in
+        .onChange(of: scenePhase) { newPhase in
             if newPhase == .active {
                 Task {
                     viewModel.language = languageManager.current
