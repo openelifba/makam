@@ -250,12 +250,10 @@ struct QiblaView: View {
                     .stroke(Makam.gold.opacity(0.2), lineWidth: 1.5)
                     .frame(width: 280, height: 280)
 
-                // Cardinal labels (fixed)
-                cardinalLabels
-
-                // Compass rose rotates so qibla arrow points at true direction
+                // Compass rose (cardinal labels + tick marks) counter-rotates to keep K pointing to geographic north
                 ZStack {
-                    // Tick marks
+                    cardinalLabels
+
                     ForEach(0..<72) { i in
                         let major = i % 9 == 0
                         Rectangle()
@@ -264,19 +262,21 @@ struct QiblaView: View {
                             .offset(y: -122)
                             .rotationEffect(.degrees(Double(i) * 5))
                     }
-
-                    // Qibla arrow
-                    VStack(spacing: 0) {
-                        Image(systemName: "arrowtriangle.up.fill")
-                            .font(.system(size: 32))
-                            .foregroundColor(Makam.gold)
-                        Text("☪︎")
-                            .font(.system(size: 22))
-                            .foregroundColor(Makam.gold)
-                            .offset(y: 4)
-                    }
-                    .offset(y: -54)
                 }
+                .rotationEffect(.degrees(-(vm.deviceHeading ?? 0)))
+                .animation(.easeOut(duration: 0.3), value: vm.deviceHeading ?? 0)
+
+                // Qibla arrow rotates to point at the Kaaba
+                VStack(spacing: 0) {
+                    Image(systemName: "arrowtriangle.up.fill")
+                        .font(.system(size: 32))
+                        .foregroundColor(Makam.gold)
+                    Text("☪︎")
+                        .font(.system(size: 22))
+                        .foregroundColor(Makam.gold)
+                        .offset(y: 4)
+                }
+                .offset(y: -54)
                 .rotationEffect(.degrees(needleAngle))
                 .animation(.easeOut(duration: 0.3), value: needleAngle)
 
