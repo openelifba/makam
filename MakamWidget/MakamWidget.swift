@@ -167,79 +167,76 @@ struct SmallWidgetView: View {
     let entry: PrayerWidgetEntry
 
     var body: some View {
-        ZStack {
-            W.bg.ignoresSafeArea()
-            VStack(spacing: 0) {
-                // Location
-                HStack(spacing: 3) {
-                    Image(systemName: "location.fill")
-                        .font(.system(size: 8, weight: .semibold))
-                        .foregroundStyle(W.gold)
-                    Text(entry.locationName)
-                        .font(.system(size: 9, weight: .semibold, design: .rounded))
-                        .foregroundStyle(W.sandDim)
-                        .lineLimit(1)
-                }
-                .padding(.bottom, 6)
-
-                if let ctx = entry.context {
-                    // Current prayer
-                    HStack(spacing: 4) {
-                        Image(systemName: ctx.current.symbol)
-                            .font(.system(size: 11, weight: .light))
-                            .foregroundStyle(W.gold)
-                        Text(ctx.current.name.uppercased())
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
-                            .tracking(1.5)
-                            .foregroundStyle(W.sand)
-                        Spacer()
-                        Text(hhmm(ctx.current.time))
-                            .font(.system(size: 11, weight: .light, design: .monospaced))
-                            .foregroundStyle(W.sandDim)
-                    }
-                    .padding(.bottom, 4)
-
-                    // Countdown — dominant element
-                    Text(ctx.next.time, style: .timer)
-                        .font(.system(size: 34, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(W.white)
-                        .monospacedDigit()
-                        .minimumScaleFactor(0.6)
-                        .lineLimit(1)
-
-                    // Divider
-                    Rectangle()
-                        .fill(W.gold.opacity(0.25))
-                        .frame(height: 0.5)
-                        .padding(.vertical, 4)
-
-                } else if entry.noCitySelected {
-                    // Prompt user to select a city
-                    Spacer()
-                    Image(systemName: "location.slash.fill")
-                        .font(.system(size: 20, weight: .light))
-                        .foregroundStyle(W.gold.opacity(0.7))
-                    Text(WidgetStrings.title)
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
-                        .foregroundStyle(W.sand)
-                        .padding(.top, 4)
-                    Text(WidgetStrings.subtitle)
-                        .font(.system(size: 8, weight: .regular, design: .rounded))
-                        .foregroundStyle(W.sandDim)
-                        .multilineTextAlignment(.center)
-                    Spacer()
-                } else {
-                    // Loading / no data
-                    Image(systemName: "moon.stars")
-                        .font(.system(size: 24, weight: .light))
-                        .foregroundStyle(W.gold.opacity(0.5))
-                    Text("—")
-                        .font(.system(size: 12))
-                        .foregroundStyle(W.sandDim)
-                }
+        VStack(spacing: 0) {
+            // Location
+            HStack(spacing: 3) {
+                Image(systemName: "location.fill")
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundStyle(W.gold)
+                Text(entry.locationName)
+                    .font(.system(size: 9, weight: .semibold, design: .rounded))
+                    .foregroundStyle(W.sandDim)
+                    .lineLimit(1)
             }
-            .padding(12)
+            .padding(.bottom, 6)
+
+            if let ctx = entry.context {
+                // Current prayer
+                HStack(spacing: 4) {
+                    Image(systemName: ctx.current.symbol)
+                        .font(.system(size: 11, weight: .light))
+                        .foregroundStyle(W.gold)
+                    Text(ctx.current.name.uppercased())
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .tracking(1.5)
+                        .foregroundStyle(W.sand)
+                    Spacer()
+                    Text(hhmm(ctx.current.time))
+                        .font(.system(size: 11, weight: .light, design: .monospaced))
+                        .foregroundStyle(W.sandDim)
+                }
+                .padding(.bottom, 4)
+
+                // Countdown — dominant element
+                Text(ctx.next.time, style: .timer)
+                    .font(.system(size: 34, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(W.white)
+                    .monospacedDigit()
+                    .minimumScaleFactor(0.6)
+                    .lineLimit(1)
+
+                // Divider
+                Rectangle()
+                    .fill(W.gold.opacity(0.25))
+                    .frame(height: 0.5)
+                    .padding(.vertical, 4)
+
+            } else if entry.noCitySelected {
+                // Prompt user to select a city
+                Spacer()
+                Image(systemName: "location.slash.fill")
+                    .font(.system(size: 20, weight: .light))
+                    .foregroundStyle(W.gold.opacity(0.7))
+                Text(WidgetStrings.title)
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .foregroundStyle(W.sand)
+                    .padding(.top, 4)
+                Text(WidgetStrings.subtitle)
+                    .font(.system(size: 8, weight: .regular, design: .rounded))
+                    .foregroundStyle(W.sandDim)
+                    .multilineTextAlignment(.center)
+                Spacer()
+            } else {
+                // Loading / no data
+                Image(systemName: "moon.stars")
+                    .font(.system(size: 24, weight: .light))
+                    .foregroundStyle(W.gold.opacity(0.5))
+                Text("—")
+                    .font(.system(size: 12))
+                    .foregroundStyle(W.sandDim)
+            }
         }
+        .padding(12)
     }
 }
 
@@ -249,26 +246,23 @@ struct MediumWidgetView: View {
     let entry: PrayerWidgetEntry
 
     var body: some View {
-        ZStack {
-            W.bg.ignoresSafeArea()
-            HStack(spacing: 0) {
-                // Left: active prayer card
-                leftCard
+        HStack(spacing: 0) {
+            // Left: active prayer card
+            leftCard
+                .frame(maxWidth: .infinity)
+
+            Rectangle()
+                .fill(W.gold.opacity(0.15))
+                .frame(width: 0.5)
+                .padding(.vertical, 12)
+
+            // Right: full prayer list
+            if let schedule = entry.schedule {
+                prayerList(schedule: schedule)
                     .frame(maxWidth: .infinity)
-
-                Rectangle()
-                    .fill(W.gold.opacity(0.15))
-                    .frame(width: 0.5)
-                    .padding(.vertical, 12)
-
-                // Right: full prayer list
-                if let schedule = entry.schedule {
-                    prayerList(schedule: schedule)
-                        .frame(maxWidth: .infinity)
-                }
             }
-            .padding(.horizontal, 8)
         }
+        .padding(.horizontal, 8)
     }
 
     private var leftCard: some View {
@@ -408,6 +402,7 @@ struct MakamPrayerWidget: Widget {
         .configurationDisplayName("Namaz Vakitleri")
         .description("Bir sonraki namaz vaktini ve günün tüm vakitlerini gösterir.")
         .supportedFamilies([.systemSmall, .systemMedium])
+        .contentMarginsDisabled()
     }
 }
 
