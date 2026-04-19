@@ -172,10 +172,10 @@ struct SmallWidgetView: View {
             HStack(spacing: 3) {
                 Image(systemName: "location.fill")
                     .font(.system(size: 8, weight: .semibold))
-                    .foregroundStyle(W.gold)
+                    .foregroundColor(W.gold)
                 Text(entry.locationName)
                     .font(.system(size: 9, weight: .semibold, design: .rounded))
-                    .foregroundStyle(W.sandDim)
+                    .foregroundColor(W.sandDim)
                     .lineLimit(1)
             }
             .padding(.bottom, 6)
@@ -185,23 +185,22 @@ struct SmallWidgetView: View {
                 HStack(spacing: 4) {
                     Image(systemName: ctx.current.symbol)
                         .font(.system(size: 11, weight: .light))
-                        .foregroundStyle(W.gold)
+                        .foregroundColor(W.gold)
                     Text(ctx.current.name.uppercased())
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
                         .tracking(1.5)
-                        .foregroundStyle(W.sand)
+                        .foregroundColor(W.sand)
                     Spacer()
                     Text(hhmm(ctx.current.time))
                         .font(.system(size: 11, weight: .light, design: .monospaced))
-                        .foregroundStyle(W.sandDim)
+                        .foregroundColor(W.sandDim)
                 }
                 .padding(.bottom, 4)
 
                 // Countdown — dominant element
                 Text(ctx.next.time, style: .timer)
                     .font(.system(size: 34, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(W.white)
-                    .monospacedDigit()
+                    .foregroundColor(W.white)
                     .minimumScaleFactor(0.6)
                     .lineLimit(1)
 
@@ -216,24 +215,24 @@ struct SmallWidgetView: View {
                 Spacer()
                 Image(systemName: "location.slash.fill")
                     .font(.system(size: 20, weight: .light))
-                    .foregroundStyle(W.gold.opacity(0.7))
+                    .foregroundColor(W.gold.opacity(0.7))
                 Text(WidgetStrings.title)
                     .font(.system(size: 10, weight: .semibold, design: .rounded))
-                    .foregroundStyle(W.sand)
+                    .foregroundColor(W.sand)
                     .padding(.top, 4)
                 Text(WidgetStrings.subtitle)
                     .font(.system(size: 8, weight: .regular, design: .rounded))
-                    .foregroundStyle(W.sandDim)
+                    .foregroundColor(W.sandDim)
                     .multilineTextAlignment(.center)
                 Spacer()
             } else {
                 // Loading / no data
                 Image(systemName: "moon.stars")
                     .font(.system(size: 24, weight: .light))
-                    .foregroundStyle(W.gold.opacity(0.5))
+                    .foregroundColor(W.gold.opacity(0.5))
                 Text("—")
                     .font(.system(size: 12))
-                    .foregroundStyle(W.sandDim)
+                    .foregroundColor(W.sandDim)
             }
         }
         .padding(12)
@@ -271,10 +270,10 @@ struct MediumWidgetView: View {
             HStack(spacing: 3) {
                 Image(systemName: "location.fill")
                     .font(.system(size: 8, weight: .semibold))
-                    .foregroundStyle(W.gold)
+                    .foregroundColor(W.gold)
                 Text(entry.locationName)
                     .font(.system(size: 9, weight: .semibold, design: .rounded))
-                    .foregroundStyle(W.sandDim)
+                    .foregroundColor(W.sandDim)
                     .lineLimit(1)
             }
 
@@ -285,22 +284,21 @@ struct MediumWidgetView: View {
                     // Current prayer
                     Image(systemName: ctx.current.symbol)
                         .font(.system(size: 22, weight: .light))
-                        .foregroundStyle(W.gold)
+                        .foregroundColor(W.gold)
 
                     Text(ctx.current.name.uppercased())
                         .font(.system(size: 12, weight: .semibold, design: .rounded))
                         .tracking(1.5)
-                        .foregroundStyle(W.sand)
+                        .foregroundColor(W.sand)
 
                     Text(hhmm(ctx.current.time))
                         .font(.system(size: 10, weight: .light, design: .monospaced))
-                        .foregroundStyle(W.sandDim)
+                        .foregroundColor(W.sandDim)
 
                     // Countdown
                     Text(ctx.next.time, style: .timer)
                         .font(.system(size: 28, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(W.white)
-                        .monospacedDigit()
+                        .foregroundColor(W.white)
                         .minimumScaleFactor(0.7)
                         .lineLimit(1)
                         .multilineTextAlignment(.center)
@@ -314,15 +312,15 @@ struct MediumWidgetView: View {
                 Spacer()
                 Image(systemName: "location.slash.fill")
                     .font(.system(size: 22, weight: .light))
-                    .foregroundStyle(W.gold.opacity(0.7))
+                    .foregroundColor(W.gold.opacity(0.7))
                 Text(WidgetStrings.title)
                     .font(.system(size: 10, weight: .semibold, design: .rounded))
-                    .foregroundStyle(W.sand)
+                    .foregroundColor(W.sand)
                     .multilineTextAlignment(.center)
                     .padding(.top, 4)
                 Text(WidgetStrings.subtitle)
                     .font(.system(size: 8, weight: .regular, design: .rounded))
-                    .foregroundStyle(W.sandDim)
+                    .foregroundColor(W.sandDim)
                     .multilineTextAlignment(.center)
                     .padding(.top, 2)
                 Spacer()
@@ -330,7 +328,7 @@ struct MediumWidgetView: View {
                 Spacer()
                 Image(systemName: "moon.stars")
                     .font(.system(size: 24))
-                    .foregroundStyle(W.gold.opacity(0.4))
+                    .foregroundColor(W.gold.opacity(0.4))
                 Spacer()
             }
         }
@@ -346,17 +344,17 @@ struct MediumWidgetView: View {
                     Image(systemName: prayer.symbol)
                         .font(.system(size: 10, weight: .light))
                         .frame(width: 14)
-                        .foregroundStyle(isCurrent ? W.gold : W.sandDim)
+                        .foregroundColor(isCurrent ? W.gold : W.sandDim)
 
                     Text(prayer.name)
                         .font(.system(size: 11, weight: isCurrent ? .semibold : .regular, design: .rounded))
-                        .foregroundStyle(isCurrent ? W.sand : W.sandDim)
+                        .foregroundColor(isCurrent ? W.sand : W.sandDim)
 
                     Spacer()
 
                     Text(hhmm(prayer.time))
                         .font(.system(size: 11, weight: .light, design: .monospaced))
-                        .foregroundStyle(isCurrent ? W.white : W.white.opacity(0.45))
+                        .foregroundColor(isCurrent ? W.white : W.white.opacity(0.45))
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
@@ -396,13 +394,17 @@ struct MakamPrayerWidget: Widget {
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: PrayerTimelineProvider()) { entry in
-            MakamWidgetEntryView(entry: entry)
-                .containerBackground(W.bg, for: .widget)
+            if #available(iOSApplicationExtension 17, *) {
+                MakamWidgetEntryView(entry: entry)
+                    .containerBackground(W.bg, for: .widget)
+            } else {
+                MakamWidgetEntryView(entry: entry)
+                    .background(W.bg)
+            }
         }
         .configurationDisplayName("Namaz Vakitleri")
         .description("Bir sonraki namaz vaktini ve günün tüm vakitlerini gösterir.")
         .supportedFamilies([.systemSmall, .systemMedium])
-        .contentMarginsDisabled()
     }
 }
 

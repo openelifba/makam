@@ -18,23 +18,24 @@ struct SettingsView: View {
     @EnvironmentObject var prayerViewModel: PrayerViewModel
     @EnvironmentObject var lang: LanguageManager
     @StateObject private var vm = SettingsViewModel()
-    @State private var navigationPath = NavigationPath()
+    @State private var navigationResetID = UUID()
     @Binding var selectedTab: AppTab
 
     var body: some View {
-        NavigationStack(path: $navigationPath) {
+        NavigationView {
             SettingsRootView(
                 vm: vm,
-                navigationPath: $navigationPath,
                 onSave: {
                     vm.saveSettings()
                     Task { await prayerViewModel.fetchPrayers() }
-                    navigationPath = NavigationPath()
+                    navigationResetID = UUID()
                     selectedTab = .prayerTimes
                 }
             )
         }
-        .task { await vm.loadCountries() }
+        .navigationViewStyle(.stack)
+        .id(navigationResetID)
+        .onAppear { Task { await vm.loadCountries() } }
     }
 }
 
@@ -44,7 +45,6 @@ private struct SettingsRootView: View {
     @EnvironmentObject var lang: LanguageManager
     @EnvironmentObject var prayerViewModel: PrayerViewModel
     @ObservedObject var vm: SettingsViewModel
-    @Binding var navigationPath: NavigationPath
     let onSave: () -> Void
 
     @State private var notificationsEnabled: Bool = NotificationService.isEnabled()
@@ -60,7 +60,7 @@ private struct SettingsRootView: View {
                     HStack(spacing: 12) {
                         Image(systemName: "globe")
                             .font(.system(size: 14))
-                            .foregroundStyle(MakamStyle.gold)
+                            .foregroundColor(MakamStyle.gold)
                             .frame(width: 22)
                         Picker("", selection: Binding(
                             get: { lang.current },
@@ -79,14 +79,14 @@ private struct SettingsRootView: View {
                         }
                         .pickerStyle(.menu)
                         .labelsHidden()
-                        .tint(MakamStyle.sand)
+                        .accentColor(MakamStyle.sand)
                         .font(.system(size: 16, weight: .regular, design: .rounded))
                     }
                     .listRowBackground(MakamStyle.rowBg)
                 } header: {
                     Text(lang.str(.settingsLanguage).uppercased())
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        .foregroundStyle(MakamStyle.sandDim)
+                        .foregroundColor(MakamStyle.sandDim)
                 }
 
                 // MARK: Location Section
@@ -98,27 +98,27 @@ private struct SettingsRootView: View {
                         HStack(spacing: 12) {
                             Image(systemName: "location.fill")
                                 .font(.system(size: 14))
-                                .foregroundStyle(MakamStyle.gold)
+                                .foregroundColor(MakamStyle.gold)
                                 .frame(width: 22)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(lang.str(.settingsLocation))
                                     .font(.system(size: 16, weight: .regular, design: .rounded))
-                                    .foregroundStyle(MakamStyle.sand)
+                                    .foregroundColor(MakamStyle.sand)
                                 if let district = UserDefaults.standard.savedDistrictName, !district.isEmpty {
                                     Text(district)
                                         .font(.system(size: 12, weight: .light, design: .rounded))
-                                        .foregroundStyle(MakamStyle.sandDim)
+                                        .foregroundColor(MakamStyle.sandDim)
                                 }
                             }
                         }
                         .padding(.vertical, 2)
                     }
                     .listRowBackground(MakamStyle.rowBg)
-                    .listRowSeparatorTint(MakamStyle.sand.opacity(0.1))
+                    .listRowSeparatorTintIfAvailable(MakamStyle.sand.opacity(0.1))
                 } header: {
                     Text(lang.str(.settingsLocation).uppercased())
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        .foregroundStyle(MakamStyle.sandDim)
+                        .foregroundColor(MakamStyle.sandDim)
                 }
 
                 // MARK: Notifications Section
@@ -127,23 +127,23 @@ private struct SettingsRootView: View {
                         HStack(spacing: 12) {
                             Image(systemName: "bell.fill")
                                 .font(.system(size: 14))
-                                .foregroundStyle(MakamStyle.gold)
+                                .foregroundColor(MakamStyle.gold)
                                 .frame(width: 22)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(lang.str(.settingsAzanReminder))
                                     .font(.system(size: 16, weight: .regular, design: .rounded))
-                                    .foregroundStyle(MakamStyle.sand)
+                                    .foregroundColor(MakamStyle.sand)
                                 Text(lang.str(.settingsAzanReminderDetail))
                                     .font(.system(size: 12, weight: .light, design: .rounded))
-                                    .foregroundStyle(MakamStyle.sandDim)
+                                    .foregroundColor(MakamStyle.sandDim)
                             }
                         }
                         .padding(.vertical, 2)
                     }
-                    .tint(MakamStyle.gold)
+                    .accentColor(MakamStyle.gold)
                     .listRowBackground(MakamStyle.rowBg)
-                    .listRowSeparatorTint(MakamStyle.sand.opacity(0.1))
-                    .onChange(of: notificationsEnabled) { _, newValue in
+                    .listRowSeparatorTintIfAvailable(MakamStyle.sand.opacity(0.1))
+                    .onChange(of: notificationsEnabled) { newValue in
                         if newValue {
                             Task {
                                 let granted = await NotificationService.requestAuthorization()
@@ -180,12 +180,12 @@ private struct SettingsRootView: View {
                 } header: {
                     Text(lang.str(.settingsNotifications).uppercased())
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        .foregroundStyle(MakamStyle.sandDim)
+                        .foregroundColor(MakamStyle.sandDim)
                 }
             }
             .listStyle(.insetGrouped)
-            .scrollContentBackground(.hidden)
-            .tint(MakamStyle.gold)
+            .scrollContentBackgroundIfAvailable()
+            .accentColor(MakamStyle.gold)
             .alert("", isPresented: $showPermissionAlert) {
                 Button("OK", role: .cancel) { }
                 Button(lang.str(.tabSettings)) {
@@ -199,8 +199,8 @@ private struct SettingsRootView: View {
         }
         .navigationTitle(lang.str(.tabSettings))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(MakamStyle.bg, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbarBackgroundIfAvailable(MakamStyle.bg, for: .navigationBar)
+        .toolbarColorSchemeIfAvailable(.dark, for: .navigationBar)
     }
 }
 
@@ -228,7 +228,7 @@ private struct CountryPickerView: View {
             Group {
                 if vm.isLoadingCountries {
                     ProgressView()
-                        .tint(MakamStyle.gold)
+                        .accentColor(MakamStyle.gold)
                 } else if vm.countries.isEmpty {
                     EmptyStateView(message: lang.str(.settingsCountryError))
                 } else {
@@ -239,7 +239,7 @@ private struct CountryPickerView: View {
                                 country: country,
                                 onSave: onSave
                             )
-                            .task { await vm.selectCountry(country) }
+                            .onAppear { Task { await vm.selectCountry(country) } }
                         ) {
                             LocationRow(
                                 name: country.name,
@@ -248,19 +248,19 @@ private struct CountryPickerView: View {
                             )
                         }
                         .listRowBackground(MakamStyle.rowBg)
-                        .listRowSeparatorTint(MakamStyle.sand.opacity(0.1))
+                        .listRowSeparatorTintIfAvailable(MakamStyle.sand.opacity(0.1))
                     }
                     .listStyle(.insetGrouped)
-                    .scrollContentBackground(.hidden)
-                    .searchable(text: $searchText, prompt: lang.str(.settingsSearchCountry))
-                    .tint(MakamStyle.gold)
+                    .scrollContentBackgroundIfAvailable()
+                    .searchableIfAvailable(text: $searchText, prompt: lang.str(.settingsSearchCountry))
+                    .accentColor(MakamStyle.gold)
                 }
             }
         }
         .navigationTitle(lang.str(.settingsSelectCountry))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(MakamStyle.bg, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbarBackgroundIfAvailable(MakamStyle.bg, for: .navigationBar)
+        .toolbarColorSchemeIfAvailable(.dark, for: .navigationBar)
         .errorBanner(vm.errorMessage)
     }
 }
@@ -290,7 +290,7 @@ private struct CityPickerView: View {
             Group {
                 if vm.isLoadingCities {
                     ProgressView()
-                        .tint(MakamStyle.gold)
+                        .accentColor(MakamStyle.gold)
                 } else if vm.cities.isEmpty {
                     EmptyStateView(message: lang.str(.settingsCityError))
                 } else {
@@ -301,7 +301,7 @@ private struct CityPickerView: View {
                                 city: city,
                                 onSave: onSave
                             )
-                            .task { await vm.selectCity(city) }
+                            .onAppear { Task { await vm.selectCity(city) } }
                         ) {
                             LocationRow(
                                 name: city.name,
@@ -310,19 +310,19 @@ private struct CityPickerView: View {
                             )
                         }
                         .listRowBackground(MakamStyle.rowBg)
-                        .listRowSeparatorTint(MakamStyle.sand.opacity(0.1))
+                        .listRowSeparatorTintIfAvailable(MakamStyle.sand.opacity(0.1))
                     }
                     .listStyle(.insetGrouped)
-                    .scrollContentBackground(.hidden)
-                    .searchable(text: $searchText, prompt: lang.str(.settingsSearchCity))
-                    .tint(MakamStyle.gold)
+                    .scrollContentBackgroundIfAvailable()
+                    .searchableIfAvailable(text: $searchText, prompt: lang.str(.settingsSearchCity))
+                    .accentColor(MakamStyle.gold)
                 }
             }
         }
         .navigationTitle(lang.str(.settingsSelectCity))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(MakamStyle.bg, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbarBackgroundIfAvailable(MakamStyle.bg, for: .navigationBar)
+        .toolbarColorSchemeIfAvailable(.dark, for: .navigationBar)
         .errorBanner(vm.errorMessage)
     }
 }
@@ -352,7 +352,7 @@ private struct DistrictPickerView: View {
             Group {
                 if vm.isLoadingDistricts {
                     ProgressView()
-                        .tint(MakamStyle.gold)
+                        .accentColor(MakamStyle.gold)
                 } else if vm.districts.isEmpty {
                     EmptyStateView(message: lang.str(.settingsDistrictError))
                 } else {
@@ -375,27 +375,27 @@ private struct DistrictPickerView: View {
                             )
                         }
                         .listRowBackground(MakamStyle.rowBg)
-                        .listRowSeparatorTint(MakamStyle.sand.opacity(0.1))
+                        .listRowSeparatorTintIfAvailable(MakamStyle.sand.opacity(0.1))
                     }
                     .listStyle(.insetGrouped)
-                    .scrollContentBackground(.hidden)
-                    .searchable(text: $searchText, prompt: lang.str(.settingsSearchDistrict))
-                    .tint(MakamStyle.gold)
+                    .scrollContentBackgroundIfAvailable()
+                    .searchableIfAvailable(text: $searchText, prompt: lang.str(.settingsSearchDistrict))
+                    .accentColor(MakamStyle.gold)
                 }
             }
         }
         .navigationTitle(lang.str(.settingsSelectDistrict))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(MakamStyle.bg, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbarBackgroundIfAvailable(MakamStyle.bg, for: .navigationBar)
+        .toolbarColorSchemeIfAvailable(.dark, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button(lang.str(.settingsSave)) { onSave() }
                     .disabled(vm.selectedDistrict == nil)
-                    .foregroundStyle(
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(
                         vm.selectedDistrict != nil ? MakamStyle.gold : Color.gray
                     )
-                    .fontWeight(.semibold)
             }
         }
         .errorBanner(vm.errorMessage)
@@ -414,12 +414,12 @@ private struct LocationRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(name)
                     .font(.system(size: 16, weight: .regular, design: .rounded))
-                    .foregroundStyle(MakamStyle.sand)
+                    .foregroundColor(MakamStyle.sand)
 
                 if let sub = subtitle, !sub.isEmpty, sub != name {
                     Text(sub)
                         .font(.system(size: 12, weight: .light, design: .rounded))
-                        .foregroundStyle(MakamStyle.sandDim)
+                        .foregroundColor(MakamStyle.sandDim)
                 }
             }
 
@@ -427,7 +427,7 @@ private struct LocationRow: View {
 
             if isSelected {
                 Image(systemName: "checkmark")
-                    .foregroundStyle(MakamStyle.gold)
+                    .foregroundColor(MakamStyle.gold)
                     .font(.system(size: 14, weight: .semibold))
             }
         }
@@ -442,10 +442,10 @@ private struct EmptyStateView: View {
         VStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.largeTitle)
-                .foregroundStyle(MakamStyle.gold)
+                .foregroundColor(MakamStyle.gold)
             Text(message)
                 .font(.system(size: 14, design: .rounded))
-                .foregroundStyle(MakamStyle.sandDim)
+                .foregroundColor(MakamStyle.sandDim)
                 .multilineTextAlignment(.center)
         }
         .padding()
@@ -457,18 +457,29 @@ private struct EmptyStateView: View {
 private struct ErrorBannerModifier: ViewModifier {
     let message: String?
 
+    @ViewBuilder
     func body(content: Content) -> some View {
-        content.safeAreaInset(edge: .bottom) {
-            if let msg = message {
-                Text(msg)
-                    .font(.system(size: 13, design: .rounded))
-                    .foregroundStyle(MakamStyle.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .frame(maxWidth: .infinity)
-                    .background(Color.red.opacity(0.75))
-                    .transition(.move(edge: .bottom))
+        if #available(iOS 15, *) {
+            content.safeAreaInset(edge: .bottom) { bannerView }
+        } else {
+            ZStack(alignment: .bottom) {
+                content
+                bannerView
             }
+        }
+    }
+
+    @ViewBuilder
+    private var bannerView: some View {
+        if let msg = message {
+            Text(msg)
+                .font(.system(size: 13, design: .rounded))
+                .foregroundColor(MakamStyle.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity)
+                .background(Color.red.opacity(0.75))
+                .transition(.move(edge: .bottom))
         }
     }
 }
@@ -476,5 +487,18 @@ private struct ErrorBannerModifier: ViewModifier {
 private extension View {
     func errorBanner(_ message: String?) -> some View {
         modifier(ErrorBannerModifier(message: message))
+    }
+}
+
+// MARK: - Searchable compatibility helper
+
+private extension View {
+    @ViewBuilder
+    func searchableIfAvailable(text: Binding<String>, prompt: String) -> some View {
+        if #available(iOS 15, *) {
+            self.searchable(text: text, prompt: prompt)
+        } else {
+            self
+        }
     }
 }

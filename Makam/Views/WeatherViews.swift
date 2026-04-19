@@ -46,19 +46,19 @@ struct WeatherChip: View {
         HStack(spacing: 4) {
             Image(systemName: weather.sfSymbol)
                 .font(.system(size: 14, weight: .regular))
-                .foregroundStyle(Makam.sand)
+                .foregroundColor(Makam.sand)
 
             Text("\(weather.temperature)°")
                 .font(.system(size: 14, weight: .regular, design: .rounded))
-                .foregroundStyle(Makam.sand)
+                .foregroundColor(Makam.sand)
 
             Text("·")
                 .font(.system(size: 12))
-                .foregroundStyle(Makam.sandDim)
+                .foregroundColor(Makam.sandDim)
 
             Text(weather.shortCondition)
                 .font(.system(size: 14, weight: .regular, design: .rounded))
-                .foregroundStyle(Makam.sand.opacity(0.80))
+                .foregroundColor(Makam.sand.opacity(0.80))
                 .lineLimit(1)
         }
         // Expand tap area to 44pt height for accessibility without visual change
@@ -124,16 +124,16 @@ struct WeatherDetailSheet: View {
         HStack(alignment: .center, spacing: 16) {
             Image(systemName: snapshot.sfSymbol)
                 .font(.system(size: 40, weight: .ultraLight))
-                .foregroundStyle(Makam.gold.opacity(0.65))
+                .foregroundColor(Makam.gold.opacity(0.65))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(snapshot.temperature)°")
                     .font(.system(size: 52, weight: .ultraLight, design: .rounded))
-                    .foregroundStyle(Makam.sand)
+                    .foregroundColor(Makam.sand)
 
                 Text(snapshot.shortCondition)
                     .font(.system(size: 14, weight: .regular, design: .rounded))
-                    .foregroundStyle(Makam.sandDim)
+                    .foregroundColor(Makam.sandDim)
             }
 
             Spacer()
@@ -158,10 +158,10 @@ struct WeatherDetailSheet: View {
         VStack(spacing: 4) {
             Text(value)
                 .font(.system(size: 16, weight: .regular, design: .rounded))
-                .foregroundStyle(Makam.sand)
+                .foregroundColor(Makam.sand)
             Text(label)
                 .font(.system(size: 11, weight: .regular, design: .rounded))
-                .foregroundStyle(Makam.sandDim)
+                .foregroundColor(Makam.sandDim)
         }
         .frame(maxWidth: .infinity)
     }
@@ -199,16 +199,16 @@ struct WeatherDetailSheet: View {
         HStack {
             Image(systemName: symbol)
                 .font(.system(size: 15, weight: .light))
-                .foregroundStyle(Makam.gold.opacity(0.65))
+                .foregroundColor(Makam.gold.opacity(0.65))
                 .frame(width: 22)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(eventLabel)
                     .font(.system(size: 11, weight: .regular, design: .rounded))
-                    .foregroundStyle(Makam.sandDim)
+                    .foregroundColor(Makam.sandDim)
                 Text(timeString(eventTime))
                     .font(.system(size: 15, weight: .light, design: .monospaced))
-                    .foregroundStyle(Makam.sand)
+                    .foregroundColor(Makam.sand)
             }
 
             Spacer()
@@ -217,10 +217,10 @@ struct WeatherDetailSheet: View {
             VStack(alignment: .trailing, spacing: 2) {
                 Text(prayer.name)
                     .font(.system(size: 11, weight: .regular, design: .rounded))
-                    .foregroundStyle(Makam.sandDim)
+                    .foregroundColor(Makam.sandDim)
                 Text(timeString(prayer.time))
                     .font(.system(size: 15, weight: .light, design: .monospaced))
-                    .foregroundStyle(Makam.gold)
+                    .foregroundColor(Makam.gold)
             }
         }
     }

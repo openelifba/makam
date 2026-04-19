@@ -16,7 +16,7 @@ struct ContentView: View {
 
             if viewModel.isLoading && viewModel.schedule == nil {
                 ProgressView()
-                    .tint(Makam.gold)
+                    .accentColor(Makam.gold)
             } else if let schedule = viewModel.schedule {
                 VStack(spacing: 8) {
                     headerView
@@ -36,10 +36,18 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showWeatherSheet) {
             if case .loaded(let snapshot) = viewModel.weatherState {
-                WeatherDetailSheet(snapshot: snapshot, schedule: viewModel.schedule)
-                    .presentationDetents([.fraction(0.45)])
-                    .presentationBackground(Makam.bg)
-                    .presentationDragIndicator(.hidden)
+                if #available(iOS 16.4, *) {
+                    WeatherDetailSheet(snapshot: snapshot, schedule: viewModel.schedule)
+                        .presentationDetents([.fraction(0.45)])
+                        .presentationBackground(Makam.bg)
+                        .presentationDragIndicator(.hidden)
+                } else if #available(iOS 16, *) {
+                    WeatherDetailSheet(snapshot: snapshot, schedule: viewModel.schedule)
+                        .presentationDetents([.fraction(0.45)])
+                        .presentationDragIndicator(.hidden)
+                } else {
+                    WeatherDetailSheet(snapshot: snapshot, schedule: viewModel.schedule)
+                }
             }
         }
     }
@@ -50,15 +58,15 @@ struct ContentView: View {
         VStack(spacing: 10) {
             HStack(spacing: 6) {
                 Text(lang.str(.contentToday))
-                    .foregroundStyle(Makam.sandDim)
+                    .foregroundColor(Makam.sandDim)
                 Rectangle()
                     .fill(Makam.sandDim)
                     .frame(width: 1, height: 10)
                 Image(systemName: "location.fill")
                     .font(.system(size: 10))
-                    .foregroundStyle(Makam.gold)
+                    .foregroundColor(Makam.gold)
                 Text(viewModel.locationName)
-                    .foregroundStyle(Makam.gold)
+                    .foregroundColor(Makam.gold)
             }
             .font(.system(size: 12, weight: .semibold, design: .rounded))
             .padding(.horizontal, 14)
@@ -85,13 +93,13 @@ struct ContentView: View {
 
                 Text(timeString(ctx.current.time))
                     .font(.system(size: 16, weight: .light, design: .rounded))
-                    .foregroundStyle(Makam.sandDim)
+                    .foregroundColor(Makam.sandDim)
             }
 
             VStack(spacing: 4) {
                 Text(viewModel.context?.countdownHMS() ?? "--:--:--")
                     .font(.system(size: 32, weight: .medium, design: .monospaced))
-                    .foregroundStyle(Makam.white)
+                    .foregroundColor(Makam.white)
 
                 HStack(spacing: 4) {
                     Image(systemName: "arrow.right")
@@ -99,7 +107,7 @@ struct ContentView: View {
                     Text(lang.untilText(prayerName: lang.prayerName(forId: ctx.next.id)))
                 }
                 .font(.system(size: 14, weight: .regular, design: .rounded))
-                .foregroundStyle(Makam.sandDim)
+                .foregroundColor(Makam.sandDim)
             }
         }
         .padding(.vertical, 20)
@@ -114,17 +122,17 @@ struct ContentView: View {
                     Image(systemName: prayer.symbol)
                         .font(.system(size: 16, weight: .light))
                         .frame(width: 24)
-                        .foregroundStyle(Makam.gold)
+                        .foregroundColor(Makam.gold)
 
                     Text(lang.prayerName(forId: prayer.id))
                         .font(.system(size: 16, weight: .regular, design: .rounded))
-                        .foregroundStyle(Makam.sand)
+                        .foregroundColor(Makam.sand)
 
                     Spacer()
 
                     Text(timeString(prayer.time))
                         .font(.system(size: 16, weight: .light, design: .monospaced))
-                        .foregroundStyle(Makam.white.opacity(0.8))
+                        .foregroundColor(Makam.white.opacity(0.8))
                 }
                 .padding(.horizontal, 24)
                 .padding(.vertical, 8)
@@ -143,15 +151,15 @@ struct ContentView: View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.largeTitle)
-                .foregroundStyle(.red)
+                .foregroundColor(.red)
             Text(message)
                 .multilineTextAlignment(.center)
-                .foregroundStyle(Makam.sand)
+                .foregroundColor(Makam.sand)
             Button(lang.str(.contentRetry)) {
                 Task { await viewModel.fetchPrayers() }
             }
-            .buttonStyle(.bordered)
-            .tint(Makam.gold)
+            .borderedButtonStyleIfAvailable()
+            .accentColor(Makam.gold)
         }
         .padding()
     }
@@ -198,6 +206,15 @@ struct SunArcView: View {
     }
 
     var body: some View {
+        if #available(iOS 15, *) {
+            canvasView
+        } else {
+            Color.clear.frame(height: 130).padding(.horizontal, 16)
+        }
+    }
+
+    @available(iOS 15, *)
+    private var canvasView: some View {
         Canvas { ctx, size in
             let gold = Color(red: 0.780, green: 0.620, blue: 0.340)
             let now  = Date()
@@ -232,7 +249,7 @@ struct SunArcView: View {
             let noonX = (riseX + setX) / 2
             let noonY = yFor(1.0)
 
-            // ── Horizon line ──────────────────────────────────────────────────
+            // ── Horizon line ────────────────────────────────────��─────────────
             var hl = Path()
             hl.move(to: CGPoint(x: 0, y: horizonY))
             hl.addLine(to: CGPoint(x: size.width, y: horizonY))
@@ -316,6 +333,57 @@ struct PrayerNameLabel: View {
         Text(name.uppercased())
             .font(.system(size: size, weight: .semibold, design: .rounded))
             .tracking(Makam.trackingLoose)
-            .foregroundStyle(Makam.sand)
+            .foregroundColor(Makam.sand)
+    }
+}
+
+// MARK: - iOS 14 Compatibility Helpers
+
+extension View {
+    @ViewBuilder
+    func borderedButtonStyleIfAvailable() -> some View {
+        if #available(iOS 15, *) {
+            self.buttonStyle(.bordered)
+        } else {
+            self
+        }
+    }
+
+    @ViewBuilder
+    func scrollContentBackgroundIfAvailable() -> some View {
+        if #available(iOS 16, *) {
+            self.scrollContentBackground(.hidden)
+        } else {
+            self
+        }
+    }
+}
+
+extension View {
+    @ViewBuilder
+    func listRowSeparatorTintIfAvailable(_ color: Color) -> some View {
+        if #available(iOS 15, *) {
+            self.listRowSeparatorTint(color)
+        } else {
+            self
+        }
+    }
+
+    @ViewBuilder
+    func toolbarBackgroundIfAvailable(_ style: Color, for bar: ToolbarPlacement) -> some View {
+        if #available(iOS 16, *) {
+            self.toolbarBackground(style, for: bar)
+        } else {
+            self
+        }
+    }
+
+    @ViewBuilder
+    func toolbarColorSchemeIfAvailable(_ scheme: ColorScheme?, for bar: ToolbarPlacement) -> some View {
+        if #available(iOS 16, *) {
+            self.toolbarColorScheme(scheme, for: bar)
+        } else {
+            self
+        }
     }
 }

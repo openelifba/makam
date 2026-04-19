@@ -437,17 +437,25 @@ enum PaletteLibrary {
 struct IslamicPatternOverlay: View {
 
     var body: some View {
+        if #available(iOS 15, *) {
+            canvasPattern
+        } else {
+            Color.clear.ignoresSafeArea()
+        }
+    }
+
+    @available(iOS 15, *)
+    private var canvasPattern: some View {
         Canvas { context, size in
-            let outerR: CGFloat = 13        // Outer star tip radius
-            let spacingX: CGFloat = 50      // Horizontal cell size
-            let spacingY: CGFloat = 50      // Vertical cell size
+            let outerR: CGFloat = 13
+            let spacingX: CGFloat = 50
+            let spacingY: CGFloat = 50
 
             let cols = Int(ceil(size.width  / spacingX)) + 2
             let rows = Int(ceil(size.height / spacingY)) + 2
 
             for row in -1 ..< rows {
                 for col in -1 ..< cols {
-                    // Offset every other row to produce an interlocked brick-like grid
                     let xOffset: CGFloat = row % 2 == 0 ? 0 : spacingX / 2
                     let cx = CGFloat(col) * spacingX + xOffset
                     let cy = CGFloat(row) * spacingY
@@ -573,8 +581,8 @@ struct DynamicPrayerBackground: View {
             IslamicPatternOverlay()
         }
         // Observe derived values so a change in either prayer OR weather triggers a transition.
-        .onChange(of: targetPeriod) { crossfade() }
-        .onChange(of: targetMood)   { crossfade() }
+        .onChange(of: targetPeriod) { _ in crossfade() }
+        .onChange(of: targetMood)   { _ in crossfade() }
     }
 
     // MARK: - Gradient helper
@@ -654,11 +662,11 @@ private struct _PreviewCycler: View {
                 VStack(spacing: 6) {
                     Text(periods[periodIndex].previewLabel)
                         .font(.system(size: 24, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundColor(.white)
 
                     Text(useRain ? "Yağmurlu" : "Açık Hava")
                         .font(.system(size: 14, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.55))
+                        .foregroundColor(.white.opacity(0.55))
                 }
 
                 HStack(spacing: 12) {
@@ -676,9 +684,9 @@ private struct _PreviewCycler: View {
                     }
                     .disabled(periodIndex == periods.count - 1)
                 }
-                .buttonStyle(.bordered)
-                .foregroundStyle(.white)
-                .tint(.white.opacity(0.4))
+                .borderedButtonStyleIfAvailable()
+                .foregroundColor(.white)
+                .accentColor(.white.opacity(0.4))
 
                 Spacer().frame(height: 48)
             }

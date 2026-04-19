@@ -9,7 +9,7 @@ targets:
   Makam:
     type: application
     platform: iOS
-    deploymentTarget: "17.0"
+    deploymentTarget: "14.0"
     sources:
       - path: Makam
     resources:
@@ -38,7 +38,7 @@ targets:
   MakamWidget:
     type: app-extension
     platform: iOS
-    deploymentTarget: "17.0"
+    deploymentTarget: "14.0"
     sources:
       - path: MakamWidget
       - path: Makam/Models/PrayerModels.swift

@@ -29,19 +29,21 @@ struct MakamApp: App {
                 .environmentObject(viewModel)
                 .environmentObject(languageManager)
                 .environmentObject(habitViewModel)
-                .task {
-                    viewModel.language = languageManager.current
-                    SettingsViewModel.setDefaultLocationIfNeeded()
-                    await viewModel.fetchPrayers()
+                .onAppear {
+                    Task {
+                        viewModel.language = languageManager.current
+                        SettingsViewModel.setDefaultLocationIfNeeded()
+                        await viewModel.fetchPrayers()
+                    }
                 }
-                .onChange(of: languageManager.current) { _, newLanguage in
+                .onChange(of: languageManager.current) { newLanguage in
                     viewModel.language = newLanguage
                     if let schedule = viewModel.schedule {
                         NotificationService.scheduleNotifications(for: schedule, language: newLanguage)
                     }
                 }
         }
-        .onChange(of: scenePhase) { oldPhase, newPhase in
+        .onChange(of: scenePhase) { newPhase in
             if newPhase == .active {
                 Task {
                     viewModel.language = languageManager.current

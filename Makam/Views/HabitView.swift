@@ -28,21 +28,30 @@ struct HabitView: View {
                 )
             }
         }
-        .overlay(alignment: .bottomTrailing) {
+        .overlay(
             FABButton { showAddTask = true }
                 .padding(.trailing, 24)
-                .padding(.bottom, 16)
-        }
+                .padding(.bottom, 16),
+            alignment: .bottomTrailing
+        )
         .sheet(isPresented: $showAddTask) {
-            AddTaskSheet(defaultDate: selectedDate)
-                .presentationDetents([.fraction(0.80), .large])
-                .presentationBackground(Makam.bg)
-                .presentationDragIndicator(.visible)
+            if #available(iOS 16.4, *) {
+                AddTaskSheet(defaultDate: selectedDate)
+                    .presentationDetents([.fraction(0.80), .large])
+                    .presentationBackground(Makam.bg)
+                    .presentationDragIndicator(.visible)
+            } else if #available(iOS 16, *) {
+                AddTaskSheet(defaultDate: selectedDate)
+                    .presentationDetents([.fraction(0.80), .large])
+                    .presentationDragIndicator(.visible)
+            } else {
+                AddTaskSheet(defaultDate: selectedDate)
+            }
         }
         .onAppear {
             habitVM.fetchTasks(for: dateString)
         }
-        .onChange(of: selectedDate) { _, _ in
+        .onChange(of: selectedDate) { _ in
             habitVM.fetchTasks(for: dateString)
         }
     }
@@ -58,7 +67,7 @@ private struct FABButton: View {
         Button(action: action) {
             Image(systemName: "plus")
                 .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(Makam.bg)
+                .foregroundColor(Makam.bg)
                 .frame(width: 52, height: 52)
                 .background(Circle().fill(Makam.gold))
                 .shadow(color: Makam.gold.opacity(0.40), radius: 12, x: 0, y: 4)
@@ -118,7 +127,7 @@ private struct WeekCalendarStrip: View {
                     .padding(.vertical, 10)
                 }
                 .onAppear { proxy.scrollTo(today, anchor: .center) }
-                .onChange(of: selectedDate) { _, date in
+                .onChange(of: selectedDate) { date in
                     withAnimation(.easeInOut(duration: 0.3)) {
                         proxy.scrollTo(calendar.startOfDay(for: date), anchor: .center)
                     }
@@ -153,7 +162,7 @@ private struct DayCell: View {
         VStack(spacing: 5) {
             Text(weekdayLabel)
                 .font(.system(size: 10, weight: .medium, design: .rounded))
-                .foregroundStyle(isSelected ? Makam.gold : Makam.sandDim)
+                .foregroundColor(isSelected ? Makam.gold : Makam.sandDim)
 
             ZStack {
                 if isSelected {
@@ -164,7 +173,7 @@ private struct DayCell: View {
                     .font(.system(size: 15,
                                   weight: isSelected ? .semibold : .regular,
                                   design: .rounded))
-                    .foregroundStyle(isSelected ? Makam.sand : Makam.sandDim)
+                    .foregroundColor(isSelected ? Makam.sand : Makam.sandDim)
             }
             .frame(width: 34, height: 34)
 
@@ -241,28 +250,28 @@ private struct PeriodSectionView: View {
             HStack(spacing: 10) {
                 Image(systemName: symbol)
                     .font(.system(size: 13, weight: .light))
-                    .foregroundStyle(Makam.gold)
+                    .foregroundColor(Makam.gold)
                     .frame(width: 18)
                 Text(lang.timePeriodName(period).uppercased())
                     .font(.system(size: 11, weight: .semibold, design: .rounded))
                     .tracking(Makam.trackingLoose)
-                    .foregroundStyle(Makam.sand)
+                    .foregroundColor(Makam.sand)
                 Spacer()
                 if tasks.isEmpty {
                     Text("0")
                         .font(.system(size: 11, weight: .regular, design: .rounded))
-                        .foregroundStyle(Makam.sandDim)
+                        .foregroundColor(Makam.sandDim)
                 } else {
                     Text("\(tasks.count)")
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        .foregroundStyle(Makam.gold)
+                        .foregroundColor(Makam.gold)
                         .padding(.horizontal, 7)
                         .padding(.vertical, 2)
                         .background(Capsule().fill(Makam.goldDim))
                 }
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(Makam.sandDim)
+                    .foregroundColor(Makam.sandDim)
                     .rotationEffect(.degrees(isExpanded ? 90 : 0))
                     .animation(.easeInOut(duration: 0.22), value: isExpanded)
             }
@@ -278,7 +287,7 @@ private struct PeriodSectionView: View {
             HStack {
                 Text(lang.str(.habitNoTasks))
                     .font(.system(size: 12, weight: .regular, design: .rounded))
-                    .foregroundStyle(Makam.sandDim.opacity(0.55))
+                    .foregroundColor(Makam.sandDim.opacity(0.55))
                 Spacer()
             }
             .padding(.horizontal, 20)
@@ -317,22 +326,22 @@ private struct TaskCard: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(task.title)
                     .font(.system(size: 14, weight: .regular, design: .rounded))
-                    .foregroundStyle(task.isCompleted ? Makam.sandDim : Makam.sand)
+                    .foregroundColor(task.isCompleted ? Makam.sandDim : Makam.sand)
                     .strikethrough(task.isCompleted, color: Makam.sandDim)
                     .lineLimit(2)
                 HStack(spacing: 10) {
                     Label(lang.durationLabel(task.duration), systemImage: "clock")
                         .font(.system(size: 11, design: .rounded))
-                        .foregroundStyle(Makam.sandDim)
+                        .foregroundColor(Makam.sandDim)
                     if task.repeatFrequency != .none {
                         Label(lang.repeatLabel(task.repeatFrequency), systemImage: "arrow.clockwise")
                             .font(.system(size: 11, design: .rounded))
-                            .foregroundStyle(Makam.gold.opacity(0.75))
+                            .foregroundColor(Makam.gold.opacity(0.75))
                     }
                     if let notes = task.notes, !notes.isEmpty {
                         Text(notes)
                             .font(.system(size: 11, design: .rounded))
-                            .foregroundStyle(Makam.sandDim.opacity(0.7))
+                            .foregroundColor(Makam.sandDim.opacity(0.7))
                             .lineLimit(1)
                     }
                 }
@@ -399,16 +408,32 @@ private struct TaskCard: View {
             Text(lang.str(.habitDeleteRecurringMessage))
         }
         .sheet(isPresented: $showEditSheet) {
-            EditTaskSheet(task: task)
-                .presentationDetents([.fraction(0.80), .large])
-                .presentationBackground(Makam.bg)
-                .presentationDragIndicator(.visible)
+            if #available(iOS 16.4, *) {
+                EditTaskSheet(task: task)
+                    .presentationDetents([.fraction(0.80), .large])
+                    .presentationBackground(Makam.bg)
+                    .presentationDragIndicator(.visible)
+            } else if #available(iOS 16, *) {
+                EditTaskSheet(task: task)
+                    .presentationDetents([.fraction(0.80), .large])
+                    .presentationDragIndicator(.visible)
+            } else {
+                EditTaskSheet(task: task)
+            }
         }
         .sheet(isPresented: $showRescheduleSheet) {
-            RescheduleSheet(task: task)
-                .presentationDetents([.medium])
-                .presentationBackground(Makam.bg)
-                .presentationDragIndicator(.visible)
+            if #available(iOS 16.4, *) {
+                RescheduleSheet(task: task)
+                    .presentationDetents([.medium])
+                    .presentationBackground(Makam.bg)
+                    .presentationDragIndicator(.visible)
+            } else if #available(iOS 16, *) {
+                RescheduleSheet(task: task)
+                    .presentationDetents([.medium])
+                    .presentationDragIndicator(.visible)
+            } else {
+                RescheduleSheet(task: task)
+            }
         }
     }
 
@@ -437,7 +462,7 @@ private struct TaskCard: View {
                     Circle().fill(Makam.goldDim).frame(width: 22, height: 22)
                     Image(systemName: "checkmark")
                         .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(Makam.gold)
+                        .foregroundColor(Makam.gold)
                 }
             }
         }
@@ -452,7 +477,7 @@ private struct AddTaskSheet: View {
     @EnvironmentObject var habitVM: HabitViewModel
     let defaultDate: Date
 
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) private var presentationMode
 
     @State private var title = ""
     @State private var selectedDate: Date
@@ -506,21 +531,21 @@ private struct AddTaskSheet: View {
 
     private var sheetHeader: some View {
         HStack {
-            Button(lang.str(.habitCancel)) { dismiss() }
+            Button(lang.str(.habitCancel)) { presentationMode.wrappedValue.dismiss() }
                 .font(.system(size: 15, design: .rounded))
-                .foregroundStyle(Makam.sandDim)
+                .foregroundColor(Makam.sandDim)
 
             Spacer()
 
             Text(lang.str(.habitNewTask))
                 .font(.system(size: 16, weight: .semibold, design: .rounded))
-                .foregroundStyle(Makam.sand)
+                .foregroundColor(Makam.sand)
 
             Spacer()
 
             Button(lang.str(.habitSave)) { save() }
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
-                .foregroundStyle(isTitleValid ? Makam.gold : Makam.sandDim.opacity(0.4))
+                .foregroundColor(isTitleValid ? Makam.gold : Makam.sandDim.opacity(0.4))
                 .disabled(!isTitleValid)
         }
         .padding(.horizontal, 20)
@@ -534,8 +559,8 @@ private struct AddTaskSheet: View {
         SheetFormField(label: lang.str(.habitTitleField)) {
             TextField(lang.str(.habitTitlePlaceholder), text: $title)
                 .font(.system(size: 15, design: .rounded))
-                .foregroundStyle(Makam.sand)
-                .tint(Makam.gold)
+                .foregroundColor(Makam.sand)
+                .accentColor(Makam.gold)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 13)
                 .background(inputBackground)
@@ -548,7 +573,7 @@ private struct AddTaskSheet: View {
                 DatePicker("", selection: $selectedDate, displayedComponents: .date)
                     .datePickerStyle(.compact)
                     .labelsHidden()
-                    .tint(Makam.gold)
+                    .accentColor(Makam.gold)
                     .environment(\.locale, lang.current.locale)
                 Spacer()
             }
@@ -618,11 +643,11 @@ private struct AddTaskSheet: View {
                 HStack {
                     Text(lang.repeatLabel(selectedRepeat))
                         .font(.system(size: 14, design: .rounded))
-                        .foregroundStyle(selectedRepeat == .none ? Makam.sandDim : Makam.gold)
+                        .foregroundColor(selectedRepeat == .none ? Makam.sandDim : Makam.gold)
                     Spacer()
                     Image(systemName: "chevron.up.chevron.down")
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(Makam.sandDim)
+                        .foregroundColor(Makam.sandDim)
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 13)
@@ -637,16 +662,16 @@ private struct AddTaskSheet: View {
                 if notes.isEmpty {
                     Text(lang.str(.habitNotesPlaceholder))
                         .font(.system(size: 14, design: .rounded))
-                        .foregroundStyle(Makam.sandDim.opacity(0.45))
+                        .foregroundColor(Makam.sandDim.opacity(0.45))
                         .padding(.horizontal, 18)
                         .padding(.top, 14)
                         .allowsHitTesting(false)
                 }
                 TextEditor(text: $notes)
                     .font(.system(size: 14, design: .rounded))
-                    .foregroundStyle(Makam.sand)
-                    .tint(Makam.gold)
-                    .scrollContentBackground(.hidden)
+                    .foregroundColor(Makam.sand)
+                    .accentColor(Makam.gold)
+                    .scrollContentBackgroundIfAvailable()
                     .frame(minHeight: 88)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)
@@ -659,7 +684,7 @@ private struct AddTaskSheet: View {
         Button(action: save) {
             Text(lang.str(.habitSave))
                 .font(.system(size: 16, weight: .semibold, design: .rounded))
-                .foregroundStyle(isTitleValid ? Makam.bg : Makam.sandDim)
+                .foregroundColor(isTitleValid ? Makam.bg : Makam.sandDim)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 15)
                 .background(
@@ -702,7 +727,7 @@ private struct AddTaskSheet: View {
                 "durationMinutes": String(selectedDuration),
             ]
         )
-        dismiss()
+        presentationMode.wrappedValue.dismiss()
     }
 }
 
@@ -713,7 +738,7 @@ private struct EditTaskSheet: View {
     @EnvironmentObject var habitVM: HabitViewModel
     let task: HabitTask
 
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) private var presentationMode
 
     @State private var title: String
     @State private var selectedDate: Date
@@ -768,17 +793,17 @@ private struct EditTaskSheet: View {
 
     private var sheetHeader: some View {
         HStack {
-            Button(lang.str(.habitCancel)) { dismiss() }
+            Button(lang.str(.habitCancel)) { presentationMode.wrappedValue.dismiss() }
                 .font(.system(size: 15, design: .rounded))
-                .foregroundStyle(Makam.sandDim)
+                .foregroundColor(Makam.sandDim)
             Spacer()
             Text(lang.str(.habitEditTask))
                 .font(.system(size: 16, weight: .semibold, design: .rounded))
-                .foregroundStyle(Makam.sand)
+                .foregroundColor(Makam.sand)
             Spacer()
             Button(lang.str(.habitSave)) { save() }
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
-                .foregroundStyle(isTitleValid ? Makam.gold : Makam.sandDim.opacity(0.4))
+                .foregroundColor(isTitleValid ? Makam.gold : Makam.sandDim.opacity(0.4))
                 .disabled(!isTitleValid)
         }
         .padding(.horizontal, 20)
@@ -790,8 +815,8 @@ private struct EditTaskSheet: View {
         SheetFormField(label: lang.str(.habitTitleField)) {
             TextField(lang.str(.habitTitlePlaceholder), text: $title)
                 .font(.system(size: 15, design: .rounded))
-                .foregroundStyle(Makam.sand)
-                .tint(Makam.gold)
+                .foregroundColor(Makam.sand)
+                .accentColor(Makam.gold)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 13)
                 .background(inputBackground)
@@ -804,7 +829,7 @@ private struct EditTaskSheet: View {
                 DatePicker("", selection: $selectedDate, displayedComponents: .date)
                     .datePickerStyle(.compact)
                     .labelsHidden()
-                    .tint(Makam.gold)
+                    .accentColor(Makam.gold)
                     .environment(\.locale, lang.current.locale)
                 Spacer()
             }
@@ -870,11 +895,11 @@ private struct EditTaskSheet: View {
                 HStack {
                     Text(lang.repeatLabel(selectedRepeat))
                         .font(.system(size: 14, design: .rounded))
-                        .foregroundStyle(selectedRepeat == .none ? Makam.sandDim : Makam.gold)
+                        .foregroundColor(selectedRepeat == .none ? Makam.sandDim : Makam.gold)
                     Spacer()
                     Image(systemName: "chevron.up.chevron.down")
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(Makam.sandDim)
+                        .foregroundColor(Makam.sandDim)
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 13)
@@ -889,16 +914,16 @@ private struct EditTaskSheet: View {
                 if notes.isEmpty {
                     Text(lang.str(.habitNotesPlaceholder))
                         .font(.system(size: 14, design: .rounded))
-                        .foregroundStyle(Makam.sandDim.opacity(0.45))
+                        .foregroundColor(Makam.sandDim.opacity(0.45))
                         .padding(.horizontal, 18)
                         .padding(.top, 14)
                         .allowsHitTesting(false)
                 }
                 TextEditor(text: $notes)
                     .font(.system(size: 14, design: .rounded))
-                    .foregroundStyle(Makam.sand)
-                    .tint(Makam.gold)
-                    .scrollContentBackground(.hidden)
+                    .foregroundColor(Makam.sand)
+                    .accentColor(Makam.gold)
+                    .scrollContentBackgroundIfAvailable()
                     .frame(minHeight: 88)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)
@@ -911,7 +936,7 @@ private struct EditTaskSheet: View {
         Button(action: save) {
             Text(lang.str(.habitSave))
                 .font(.system(size: 16, weight: .semibold, design: .rounded))
-                .foregroundStyle(isTitleValid ? Makam.bg : Makam.sandDim)
+                .foregroundColor(isTitleValid ? Makam.bg : Makam.sandDim)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 15)
                 .background(
@@ -948,7 +973,7 @@ private struct EditTaskSheet: View {
             "habit_updated",
             metadata: ["timePeriod": selectedPeriod.rawValue]
         )
-        dismiss()
+        presentationMode.wrappedValue.dismiss()
     }
 }
 
@@ -959,7 +984,7 @@ private struct RescheduleSheet: View {
     @EnvironmentObject var habitVM: HabitViewModel
     let task: HabitTask
 
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) private var presentationMode
 
     @State private var selectedDate: Date
     @State private var selectedPeriod: TimePeriod
@@ -998,17 +1023,17 @@ private struct RescheduleSheet: View {
 
     private var sheetHeader: some View {
         HStack {
-            Button(lang.str(.habitCancel)) { dismiss() }
+            Button(lang.str(.habitCancel)) { presentationMode.wrappedValue.dismiss() }
                 .font(.system(size: 15, design: .rounded))
-                .foregroundStyle(Makam.sandDim)
+                .foregroundColor(Makam.sandDim)
             Spacer()
             Text(lang.str(.habitRescheduleTitle))
                 .font(.system(size: 16, weight: .semibold, design: .rounded))
-                .foregroundStyle(Makam.sand)
+                .foregroundColor(Makam.sand)
             Spacer()
             Button(lang.str(.habitPlanButton)) { save() }
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
-                .foregroundStyle(Makam.gold)
+                .foregroundColor(Makam.gold)
         }
         .padding(.horizontal, 20)
         .padding(.top, 20)
@@ -1021,7 +1046,7 @@ private struct RescheduleSheet: View {
                 DatePicker("", selection: $selectedDate, displayedComponents: .date)
                     .datePickerStyle(.compact)
                     .labelsHidden()
-                    .tint(Makam.gold)
+                    .accentColor(Makam.gold)
                     .environment(\.locale, lang.current.locale)
                 Spacer()
             }
@@ -1054,7 +1079,7 @@ private struct RescheduleSheet: View {
         Button(action: save) {
             Text(lang.str(.habitPlanButton))
                 .font(.system(size: 16, weight: .semibold, design: .rounded))
-                .foregroundStyle(Makam.bg)
+                .foregroundColor(Makam.bg)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 15)
                 .background(RoundedRectangle(cornerRadius: 14).fill(Makam.gold))
@@ -1081,7 +1106,7 @@ private struct RescheduleSheet: View {
                 "toPeriod": selectedPeriod.rawValue,
             ]
         )
-        dismiss()
+        presentationMode.wrappedValue.dismiss()
     }
 }
 
@@ -1101,7 +1126,7 @@ private struct SheetFormField<Content: View>: View {
             Text(label.uppercased())
                 .font(.system(size: 10, weight: .semibold, design: .rounded))
                 .tracking(Makam.trackingLoose)
-                .foregroundStyle(Makam.sandDim)
+                .foregroundColor(Makam.sandDim)
             content
         }
     }
@@ -1118,7 +1143,7 @@ private struct SelectionPill: View {
         Button(action: action) {
             Text(label)
                 .font(.system(size: 13, design: .rounded))
-                .foregroundStyle(isSelected ? Makam.bg : Makam.sand)
+                .foregroundColor(isSelected ? Makam.bg : Makam.sand)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 7)
                 .background(

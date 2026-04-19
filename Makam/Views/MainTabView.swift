@@ -46,8 +46,8 @@ struct MainTabView: View {
                 .tabItem { Label(lang.str(.tabSettings), systemImage: "gearshape") }
                 .tag(AppTab.settings)
         }
-        .tint(Makam.gold)
-        .onChange(of: selectedTab) { _, newTab in
+        .accentColor(Makam.gold)
+        .onChange(of: selectedTab) { newTab in
             Analytics.logEvent(
                 "tab_selected",
                 metadata: ["tabName": String(describing: newTab)]

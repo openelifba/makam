@@ -229,7 +229,7 @@ struct QiblaView: View {
     private var loadingView: some View {
         VStack(spacing: 12) {
             ProgressView()
-                .tint(Makam.gold)
+                .accentColor(Makam.gold)
             Text(lang.str(.qiblaLocating))
                 .foregroundColor(Makam.sand.opacity(0.6))
                 .font(.subheadline)

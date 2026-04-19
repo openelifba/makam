@@ -4,8 +4,8 @@ import PackageDescription
 let package = Package(
     name: "Makam",
     platforms: [
-        .iOS(.v17),
-        .macOS(.v14)
+        .iOS(.v14),
+        .macOS(.v11)
     ],
     products: [
         .library(

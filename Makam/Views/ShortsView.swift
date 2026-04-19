@@ -14,41 +14,41 @@ struct ShortsView: View {
             if service.isLoading {
                 VStack(spacing: 16) {
                     ProgressView()
-                        .tint(.white)
+                        .accentColor(.white)
                         .scaleEffect(1.4)
                     Text("Loading…")
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundColor(.white.opacity(0.6))
                         .font(.subheadline)
                 }
             } else if let err = service.errorMessage {
                 VStack(spacing: 12) {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.system(size: 44))
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundColor(.white.opacity(0.7))
                     Text(err)
-                        .foregroundStyle(.white.opacity(0.8))
+                        .foregroundColor(.white.opacity(0.8))
                         .font(.footnote)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
                     Button("Retry") {
                         Task { await service.fetchItems() }
                     }
-                    .buttonStyle(.bordered)
-                    .tint(.white)
+                    .borderedButtonStyleIfAvailable()
+                    .accentColor(.white)
                 }
             } else if service.items.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "video.slash")
                         .font(.system(size: 44))
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundColor(.white.opacity(0.6))
                     Text("No videos found")
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundColor(.white.opacity(0.7))
                 }
             } else {
                 ShortsFeed(items: service.items)
             }
         }
-        .task { await service.fetchItems() }
+        .onAppear { Task { await service.fetchItems() } }
     }
 }
 
@@ -60,23 +60,20 @@ private struct ShortsFeed: View {
     @State private var activeID: String?
 
     var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            LazyVStack(spacing: 0) {
-                ForEach(items) { item in
-                    ShortPlayerView(item: item, isActive: activeID == item.id)
-                        .containerRelativeFrame([.horizontal, .vertical])
-                }
+        TabView(selection: $activeID) {
+            ForEach(items) { item in
+                ShortPlayerView(item: item, isActive: activeID == item.id)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .ignoresSafeArea()
+                    .tag(item.id as String?)
             }
-            .scrollTargetLayout()
         }
-        .scrollTargetBehavior(.paging)
-        .scrollPosition(id: $activeID)
+        .tabViewStyle(.page(indexDisplayMode: .never))
         .ignoresSafeArea()
         .onAppear {
-            // Activate the first item on load
             if activeID == nil { activeID = items.first?.id }
         }
-        .onChange(of: activeID) { _, newID in
+        .onChange(of: activeID) { newID in
             guard let newID, let item = items.first(where: { $0.id == newID }) else { return }
             Analytics.logEvent(
                 "shorts_video_loaded",
@@ -111,7 +108,7 @@ private struct ShortPlayerView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(item.name)
                             .font(.headline)
-                            .foregroundStyle(.white)
+                            .foregroundColor(.white)
                             .shadow(radius: 4)
                             .lineLimit(2)
                     }
@@ -122,7 +119,7 @@ private struct ShortPlayerView: View {
                     } label: {
                         Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
                             .font(.title2)
-                            .foregroundStyle(.white)
+                            .foregroundColor(.white)
                             .shadow(radius: 4)
                     }
                 }
@@ -146,7 +143,7 @@ private struct ShortPlayerView: View {
             player?.seek(to: .zero)
             player = nil
         }
-        .onChange(of: isActive) { _, active in
+        .onChange(of: isActive) { active in
             if active {
                 player?.play()
             } else {
