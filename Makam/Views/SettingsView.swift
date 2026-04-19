@@ -64,7 +64,13 @@ private struct SettingsRootView: View {
                             .frame(width: 22)
                         Picker("", selection: Binding(
                             get: { lang.current },
-                            set: { lang.setLanguage($0) }
+                            set: { newValue in
+                                lang.setLanguage(newValue)
+                                Analytics.logEvent(
+                                    "language_changed",
+                                    metadata: ["language": String(describing: newValue)]
+                                )
+                            }
                         )) {
                             ForEach(AppLanguage.allCases) { language in
                                 Text(language.displayName)
@@ -154,10 +160,21 @@ private struct SettingsRootView: View {
                                     notificationsEnabled = false
                                     showPermissionAlert = true
                                 }
+                                Analytics.logEvent(
+                                    "notifications_toggled",
+                                    metadata: [
+                                        "enabled": granted ? "true" : "false",
+                                        "permissionGranted": granted ? "true" : "false",
+                                    ]
+                                )
                             }
                         } else {
                             NotificationService.setEnabled(false)
                             NotificationService.cancelAll()
+                            Analytics.logEvent(
+                                "notifications_toggled",
+                                metadata: ["enabled": "false", "permissionGranted": "true"]
+                            )
                         }
                     }
                 } header: {
@@ -342,6 +359,14 @@ private struct DistrictPickerView: View {
                     List(filtered) { district in
                         Button {
                             vm.selectDistrict(district)
+                            Analytics.logEvent(
+                                "location_changed",
+                                metadata: [
+                                    "countryName": vm.selectedCountry?.name ?? "",
+                                    "cityName": vm.selectedCity?.name ?? "",
+                                    "districtName": district.name,
+                                ]
+                            )
                         } label: {
                             LocationRow(
                                 name: district.name,

@@ -38,14 +38,24 @@ struct MainTabView: View {
                 .tabItem { Label(lang.str(.tabQibla), systemImage: "location.north.line") }
                 .tag(AppTab.qibla)
 
+            ShortsView()
+                .tabItem { Label("Shorts", systemImage: "play.rectangle.on.rectangle") }
+                .tag(AppTab.shorts)
+
             SettingsView(selectedTab: $selectedTab)
                 .tabItem { Label(lang.str(.tabSettings), systemImage: "gearshape") }
                 .tag(AppTab.settings)
         }
         .tint(Makam.gold)
+        .onChange(of: selectedTab) { _, newTab in
+            Analytics.logEvent(
+                "tab_selected",
+                metadata: ["tabName": String(describing: newTab)]
+            )
+        }
     }
 }
 
 enum AppTab {
-    case habit, prayerTimes, qibla, settings
+    case habit, prayerTimes, qibla, shorts, settings
 }

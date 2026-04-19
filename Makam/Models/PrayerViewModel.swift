@@ -40,10 +40,11 @@ class PrayerViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
 
+        let districtId = UserDefaults.standard.savedDistrictId
         do {
             let today: DailyPrayerSchedule
 
-            if let districtId = UserDefaults.standard.savedDistrictId {
+            if let districtId {
                 let vakit = try await EzanVaktiService.fetchTodayPrayerTimes(districtId: districtId)
                 guard let schedule = EzanVaktiService.toDailySchedule(from: vakit) else {
                     throw EzanVaktiServiceError.noDataForToday
@@ -57,6 +58,10 @@ class PrayerViewModel: ObservableObject {
             self.locationName = SettingsViewModel.savedLocationLabel()
             self.refreshContext()
             self.isLoading = false
+            Analytics.logEvent(
+                "prayer_times_fetched",
+                metadata: ["success": "true", "districtId": districtId ?? ""]
+            )
             // Schedule azan notifications for today's prayers.
             NotificationService.scheduleNotifications(for: today, language: language)
             // Weather is secondary — fetch after prayer data succeeds.
@@ -64,6 +69,10 @@ class PrayerViewModel: ObservableObject {
         } catch {
             self.errorMessage = error.localizedDescription
             self.isLoading = false
+            Analytics.logEvent(
+                "prayer_times_fetched",
+                metadata: ["success": "false", "districtId": districtId ?? ""]
+            )
         }
     }
 

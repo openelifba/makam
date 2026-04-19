@@ -69,8 +69,18 @@ final class QiblaViewModel: NSObject, ObservableObject, CLLocationManagerDelegat
         Task { @MainActor in
             self.qiblaBearing = self.bearing(from: loc.coordinate)
             self.distanceToKaaba = loc.distance(from: self.kaabaLocation)
-            if self.status == .locating { self.status = .ready }
+            let firstFix = self.status == .locating
+            if firstFix { self.status = .ready }
             self.reverseGeocode(loc)
+            if firstFix {
+                Analytics.logEvent(
+                    "qibla_location_acquired",
+                    metadata: [
+                        "distanceToKaabaKm": String(format: "%.1f", (self.distanceToKaaba ?? 0) / 1000),
+                        "bearingDegrees": String(format: "%.0f", self.qiblaBearing),
+                    ]
+                )
+            }
         }
     }
 
@@ -164,7 +174,13 @@ struct QiblaView: View {
             }
             .padding(.top, 56)
         }
-        .onAppear { vm.start() }
+        .onAppear {
+            vm.start()
+            Analytics.logEvent(
+                "qibla_view_accessed",
+                metadata: ["authorizationStatus": String(describing: vm.status)]
+            )
+        }
     }
 
     // MARK: Sub-views

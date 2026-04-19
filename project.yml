@@ -1,6 +1,10 @@
 name: Makam
 options:
   bundleIdPrefix: com.yaysoftwares
+packages:
+  Statsig:
+    url: https://github.com/statsig-io/statsig-kit.git
+    minorVersion: 1.62.5
 targets:
   Makam:
     type: application
@@ -29,6 +33,7 @@ targets:
       - target: MakamWidget
         embed: true
         codeSign: true
+      - package: Statsig
 
   MakamWidget:
     type: app-extension

@@ -107,6 +107,10 @@ private struct WeekCalendarStrip: View {
                             .id(day)
                             .onTapGesture {
                                 withAnimation(.easeInOut(duration: 0.18)) { selectedDate = day }
+                                Analytics.logEvent(
+                                    "habit_date_changed",
+                                    metadata: ["selectedDate": ISO8601DateFormatter().string(from: day)]
+                                )
                             }
                         }
                     }
@@ -362,15 +366,33 @@ private struct TaskCard: View {
             Button(lang.str(.habitCancel), role: .cancel) {}
         }
         .alert(lang.str(.habitDeleteTaskTitle), isPresented: $showDeleteConfirm) {
-            Button(lang.str(.habitDelete), role: .destructive) { habitVM.delete(task) }
+            Button(lang.str(.habitDelete), role: .destructive) {
+                habitVM.delete(task)
+                Analytics.logEvent(
+                    "habit_deleted",
+                    metadata: ["isRecurring": task.seriesID == nil ? "false" : "true"]
+                )
+            }
             Button(lang.str(.habitCancel), role: .cancel) {}
         } message: {
             Text(lang.str(.habitDeleteConfirm).replacingOccurrences(of: "%@", with: task.title))
         }
         .confirmationDialog(lang.str(.habitDeleteRecurringTitle), isPresented: $showSeriesDeleteDialog, titleVisibility: .visible) {
-            Button(lang.str(.habitDeleteOnlyThis), role: .destructive) { habitVM.delete(task) }
+            Button(lang.str(.habitDeleteOnlyThis), role: .destructive) {
+                habitVM.delete(task)
+                Analytics.logEvent(
+                    "habit_deleted",
+                    metadata: ["isRecurring": "true", "scope": "single"]
+                )
+            }
             Button(lang.str(.habitDeleteAllSeries), role: .destructive) {
-                if let sid = task.seriesID { habitVM.deleteSeries(seriesId: sid) }
+                if let sid = task.seriesID {
+                    habitVM.deleteSeries(seriesId: sid)
+                    Analytics.logEvent(
+                        "habit_deleted",
+                        metadata: ["isRecurring": "true", "scope": "series"]
+                    )
+                }
             }
             Button(lang.str(.habitCancel), role: .cancel) {}
         } message: {
@@ -392,9 +414,17 @@ private struct TaskCard: View {
 
     private var completionButton: some View {
         Button {
+            let willBeCompleted = !task.isCompleted
             withAnimation(.easeInOut(duration: 0.15)) {
                 habitVM.toggleCompletion(task)
             }
+            Analytics.logEvent(
+                "habit_completed",
+                metadata: [
+                    "timePeriod": task.timePeriod.rawValue,
+                    "completed": willBeCompleted ? "true" : "false",
+                ]
+            )
         } label: {
             ZStack {
                 Circle()
@@ -664,6 +694,14 @@ private struct AddTaskSheet: View {
             notes: trimmedNotes.isEmpty ? nil : trimmedNotes,
             repeatFrequency: selectedRepeat
         )
+        Analytics.logEvent(
+            "habit_created",
+            metadata: [
+                "timePeriod": selectedPeriod.rawValue,
+                "repeatFrequency": selectedRepeat.rawValue,
+                "durationMinutes": String(selectedDuration),
+            ]
+        )
         dismiss()
     }
 }
@@ -906,6 +944,10 @@ private struct EditTaskSheet: View {
         updated.notes = trimmedNotes.isEmpty ? nil : trimmedNotes
         updated.repeatFrequency = selectedRepeat
         habitVM.update(updated)
+        Analytics.logEvent(
+            "habit_updated",
+            metadata: ["timePeriod": selectedPeriod.rawValue]
+        )
         dismiss()
     }
 }
@@ -1032,6 +1074,13 @@ private struct RescheduleSheet: View {
     private func save() {
         let newDate = Self.isoFormatter.string(from: selectedDate)
         habitVM.reschedule(task, to: newDate, period: selectedPeriod)
+        Analytics.logEvent(
+            "habit_rescheduled",
+            metadata: [
+                "fromPeriod": task.timePeriod.rawValue,
+                "toPeriod": selectedPeriod.rawValue,
+            ]
+        )
         dismiss()
     }
 }

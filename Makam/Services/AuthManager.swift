@@ -18,7 +18,7 @@ actor AuthManager {
     /// Derives device credentials, registers (ignoring "already exists" errors),
     /// logs in, and stores the resulting JWT token in Keychain.
     func autoLoginWithDeviceId() async throws {
-        let deviceId = await resolvedDeviceId()
+        let deviceId = await deviceId()
         let email    = "\(deviceId)@wordiam.com"
         let password = deviceId
 
@@ -27,11 +27,16 @@ actor AuthManager {
         KeychainHelper.shared.save(token: token)
     }
 
-    // MARK: - Private
+    // MARK: - Device ID
 
-    private func resolvedDeviceId() async -> String {
-        let key = "makam.deviceId"
-        if let cached = UserDefaults.standard.string(forKey: key) { return cached }
+    static let deviceIdKey = "makam.deviceId"
+
+    static func cachedDeviceId() -> String? {
+        UserDefaults.standard.string(forKey: deviceIdKey)
+    }
+
+    func deviceId() async -> String {
+        if let cached = UserDefaults.standard.string(forKey: Self.deviceIdKey) { return cached }
 
         #if canImport(UIKit)
         let id = await MainActor.run {
@@ -41,7 +46,7 @@ actor AuthManager {
         let id = UUID().uuidString
         #endif
 
-        UserDefaults.standard.set(id, forKey: key)
+        UserDefaults.standard.set(id, forKey: Self.deviceIdKey)
         return id
     }
 }
