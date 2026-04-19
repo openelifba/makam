@@ -28,19 +28,18 @@ struct JellyfinItemsResponse: Codable {
 @MainActor
 final class JellyfinService: ObservableObject {
 
-    static let baseURL = "http://10.0.0.2:8096"
-    static let apiKey  = "70950ae62a254f65a072bd78730ea66a"
+    static let baseURL = Endpoints.jellyfin
 
     @Published var items: [JellyfinItem] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
 
     static func streamURL(for itemId: String) -> URL {
-        URL(string: "\(baseURL)/Videos/\(itemId)/stream?api_key=\(apiKey)&Static=true&MediaSourceId=\(itemId)")!
+        URL(string: "\(baseURL)/Videos/\(itemId)/stream?Static=true&MediaSourceId=\(itemId)")!
     }
 
     static func thumbnailURL(for itemId: String) -> URL {
-        URL(string: "\(baseURL)/Items/\(itemId)/Images/Primary?api_key=\(apiKey)&fillWidth=400&quality=80")!
+        URL(string: "\(baseURL)/Items/\(itemId)/Images/Primary?fillWidth=400&quality=80")!
     }
 
     func fetchItems() async {
@@ -48,7 +47,7 @@ final class JellyfinService: ObservableObject {
         errorMessage = nil
         defer { isLoading = false }
 
-        let urlString = "\(Self.baseURL)/Items?IncludeItemTypes=Movie,Episode,Video&Recursive=true&api_key=\(Self.apiKey)&Fields=BasicSyncInfo&SortBy=DateCreated&SortOrder=Descending&Limit=100"
+        let urlString = "\(Self.baseURL)/Items?IncludeItemTypes=Movie,Episode,Video&Recursive=true&Fields=BasicSyncInfo&SortBy=DateCreated&SortOrder=Descending&Limit=100"
         guard let url = URL(string: urlString) else { return }
 
         do {
