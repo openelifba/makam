@@ -158,6 +158,8 @@ private struct ShortPlayerView: View {
 
     private func setupPlayerIfNeeded() {
         guard player == nil else { return }
+        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+        try? AVAudioSession.sharedInstance().setActive(true)
         let url = JellyfinService.streamURL(for: item.id)
         let avPlayer = AVPlayer(url: url)
         avPlayer.isMuted = isMuted
@@ -202,7 +204,7 @@ final class _PlayerUIView: UIView {
         get { playerLayer.player }
         set {
             playerLayer.player = newValue
-            playerLayer.videoGravity = .resizeAspect
+            playerLayer.videoGravity = .resizeAspectFill
         }
     }
 }
