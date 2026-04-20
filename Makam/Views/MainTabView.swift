@@ -21,33 +21,50 @@ struct MainTabView: View {
         selected.titleTextAttributes = [.foregroundColor: gold]
 
         UITabBar.appearance().standardAppearance = appearance
-        UITabBar.appearance().scrollEdgeAppearance = appearance
+        if #available(iOS 15, *) {
+            UITabBar.appearance().scrollEdgeAppearance = appearance
+        }
     }
 
     var body: some View {
         TabView(selection: $selectedTab) {
             HabitView()
-                .tabItem { Label(lang.str(.tabHabits), systemImage: "checklist") }
+                .tabItem {
+                    Image(systemName: "checklist")
+                    Text(lang.str(.tabHabits))
+                }
                 .tag(AppTab.habit)
 
             ContentView()
-                .tabItem { Label(lang.str(.tabPrayerTimes), systemImage: "moon.stars") }
+                .tabItem {
+                    Image(systemName: "moon.stars")
+                    Text(lang.str(.tabPrayerTimes))
+                }
                 .tag(AppTab.prayerTimes)
 
             QiblaView()
-                .tabItem { Label(lang.str(.tabQibla), systemImage: "location.north.line") }
+                .tabItem {
+                    Image(systemName: "location.north.line")
+                    Text(lang.str(.tabQibla))
+                }
                 .tag(AppTab.qibla)
 
             ShortsView()
-                .tabItem { Label("Shorts", systemImage: "play.rectangle.on.rectangle") }
+                .tabItem {
+                    Image(systemName: "play.rectangle.on.rectangle")
+                    Text("Shorts")
+                }
                 .tag(AppTab.shorts)
 
             SettingsView(selectedTab: $selectedTab)
-                .tabItem { Label(lang.str(.tabSettings), systemImage: "gearshape") }
+                .tabItem {
+                    Image(systemName: "gearshape")
+                    Text(lang.str(.tabSettings))
+                }
                 .tag(AppTab.settings)
         }
-        .tint(Makam.gold)
-        .onChange(of: selectedTab) { _, newTab in
+        .accentColor(Makam.gold)
+        .compatOnChange(of: selectedTab) { newTab in
             Analytics.logEvent(
                 "tab_selected",
                 metadata: ["tabName": String(describing: newTab)]

@@ -8,21 +8,19 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            // Dynamic gradient that shifts based on the active prayer period and live weather.
             DynamicPrayerBackground(
                 prayerID:     viewModel.context?.current.id,
                 weatherState: viewModel.weatherState
             )
 
             if viewModel.isLoading && viewModel.schedule == nil {
-                ProgressView()
-                    .tint(Makam.gold)
+                ActivityIndicatorView(color: UIColor(Makam.gold))
             } else if let schedule = viewModel.schedule {
                 VStack(spacing: 8) {
                     headerView
 
                     if let ctx = viewModel.context {
-                        activePrayerCard(ctx: ctx)
+                        activePrayerCard(ctx: ctx, schedule: schedule)
                     }
 
                     prayerList(schedule: schedule)
@@ -36,10 +34,14 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showWeatherSheet) {
             if case .loaded(let snapshot) = viewModel.weatherState {
-                WeatherDetailSheet(snapshot: snapshot, schedule: viewModel.schedule)
-                    .presentationDetents([.fraction(0.45)])
-                    .presentationBackground(Makam.bg)
-                    .presentationDragIndicator(.hidden)
+                if #available(iOS 16, *) {
+                    WeatherDetailSheet(snapshot: snapshot, schedule: viewModel.schedule)
+                        .presentationDetents([.fraction(0.45)])
+                        .presentationBackground(Makam.bg)
+                        .presentationDragIndicator(.hidden)
+                } else {
+                    WeatherDetailSheet(snapshot: snapshot, schedule: viewModel.schedule)
+                }
             }
         }
     }
@@ -50,15 +52,15 @@ struct ContentView: View {
         VStack(spacing: 10) {
             HStack(spacing: 6) {
                 Text(lang.str(.contentToday))
-                    .foregroundStyle(Makam.sandDim)
+                    .foregroundColor(Makam.sandDim)
                 Rectangle()
                     .fill(Makam.sandDim)
                     .frame(width: 1, height: 10)
                 Image(systemName: "location.fill")
                     .font(.system(size: 10))
-                    .foregroundStyle(Makam.gold)
+                    .foregroundColor(Makam.gold)
                 Text(viewModel.locationName)
-                    .foregroundStyle(Makam.gold)
+                    .foregroundColor(Makam.gold)
             }
             .font(.system(size: 12, weight: .semibold, design: .rounded))
             .padding(.horizontal, 14)
@@ -71,9 +73,9 @@ struct ContentView: View {
 
     // MARK: - Active Prayer Card
 
-    private func activePrayerCard(ctx: PrayerContext) -> some View {
+    private func activePrayerCard(ctx: PrayerContext, schedule: DailyPrayerSchedule) -> some View {
         VStack(spacing: 20) {
-            if let schedule = viewModel.schedule {
+            if #available(iOS 15, *) {
                 SunArcView(
                     prayers: schedule.prayers,
                     currentPrayerID: ctx.current.id
@@ -85,13 +87,13 @@ struct ContentView: View {
 
                 Text(timeString(ctx.current.time))
                     .font(.system(size: 16, weight: .light, design: .rounded))
-                    .foregroundStyle(Makam.sandDim)
+                    .foregroundColor(Makam.sandDim)
             }
 
             VStack(spacing: 4) {
                 Text(viewModel.context?.countdownHMS() ?? "--:--:--")
                     .font(.system(size: 32, weight: .medium, design: .monospaced))
-                    .foregroundStyle(Makam.white)
+                    .foregroundColor(Makam.white)
 
                 HStack(spacing: 4) {
                     Image(systemName: "arrow.right")
@@ -99,7 +101,7 @@ struct ContentView: View {
                     Text(lang.untilText(prayerName: lang.prayerName(forId: ctx.next.id)))
                 }
                 .font(.system(size: 14, weight: .regular, design: .rounded))
-                .foregroundStyle(Makam.sandDim)
+                .foregroundColor(Makam.sandDim)
             }
         }
         .padding(.vertical, 20)
@@ -114,17 +116,17 @@ struct ContentView: View {
                     Image(systemName: prayer.symbol)
                         .font(.system(size: 16, weight: .light))
                         .frame(width: 24)
-                        .foregroundStyle(Makam.gold)
+                        .foregroundColor(Makam.gold)
 
                     Text(lang.prayerName(forId: prayer.id))
                         .font(.system(size: 16, weight: .regular, design: .rounded))
-                        .foregroundStyle(Makam.sand)
+                        .foregroundColor(Makam.sand)
 
                     Spacer()
 
                     Text(timeString(prayer.time))
                         .font(.system(size: 16, weight: .light, design: .monospaced))
-                        .foregroundStyle(Makam.white.opacity(0.8))
+                        .foregroundColor(Makam.white.opacity(0.8))
                 }
                 .padding(.horizontal, 24)
                 .padding(.vertical, 8)
@@ -143,15 +145,14 @@ struct ContentView: View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.largeTitle)
-                .foregroundStyle(.red)
+                .foregroundColor(.red)
             Text(message)
                 .multilineTextAlignment(.center)
-                .foregroundStyle(Makam.sand)
+                .foregroundColor(Makam.sand)
             Button(lang.str(.contentRetry)) {
                 Task { await viewModel.fetchPrayers() }
             }
-            .buttonStyle(.bordered)
-            .tint(Makam.gold)
+            .accentColor(Makam.gold)
         }
         .padding()
     }
@@ -177,10 +178,9 @@ enum Makam {
     static let trackingLoose: CGFloat = 2.5
 }
 
-// MARK: - Shared Components
+// MARK: - SunArcView (iOS 15+)
 
-/// Gold-themed solar arc: full 24-hour x-axis, bold daytime arc, thick dim
-/// nighttime arc, prayer markers with labels, gold sun glow indicator.
+@available(iOS 15.0, *)
 struct SunArcView: View {
     let prayers: [Prayer]
     let currentPrayerID: Int
@@ -232,13 +232,11 @@ struct SunArcView: View {
             let noonX = (riseX + setX) / 2
             let noonY = yFor(1.0)
 
-            // ── Horizon line ──────────────────────────────────────────────────
             var hl = Path()
             hl.move(to: CGPoint(x: 0, y: horizonY))
             hl.addLine(to: CGPoint(x: size.width, y: horizonY))
             ctx.stroke(hl, with: .color(gold.opacity(0.15)), lineWidth: 0.5)
 
-            // ── Warm fill under daytime arc ───────────────────────────────────
             if riseStep < setStep {
                 var fill = Path()
                 fill.move(to: CGPoint(x: riseX, y: horizonY))
@@ -251,26 +249,20 @@ struct SunArcView: View {
                     endPoint:   CGPoint(x: noonX, y: horizonY)))
             }
 
-            // ── Arc ───────────────────────────────────────────────────────────
-            // Nighttime before sunrise — thick, dim
             if riseStep > 0 {
                 var p = Path(); p.move(to: stepPt(0))
                 for i in 1...riseStep { p.addLine(to: stepPt(i)) }
                 ctx.stroke(p, with: .color(gold.opacity(0.28)),
                            style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
             }
-            // Daytime — bold, bright gold + soft glow pass
             if riseStep < setStep {
                 var p = Path(); p.move(to: stepPt(riseStep))
                 for i in (riseStep + 1)...setStep { p.addLine(to: stepPt(i)) }
-                // Glow
                 ctx.stroke(p, with: .color(gold.opacity(0.18)),
                            style: StrokeStyle(lineWidth: 12, lineCap: .round, lineJoin: .round))
-                // Bold arc
                 ctx.stroke(p, with: .color(gold.opacity(0.92)),
                            style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
             }
-            // Nighttime after sunset — thick, dim
             if setStep < steps {
                 var p = Path(); p.move(to: stepPt(setStep))
                 for i in (setStep + 1)...steps { p.addLine(to: stepPt(i)) }
@@ -278,22 +270,18 @@ struct SunArcView: View {
                            style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
             }
 
-            // ── Prayer time markers (skip active — sun dot marks current position) ──
             for prayer in prayers where prayer.id != currentPrayerID {
                 let px       = xFor(prayer.time)
                 let pAlt     = altitude(at: prayer.time)
                 let py       = yFor(pAlt)
                 let isPast   = prayer.time < now
-
                 let dotR: CGFloat = 2.5
                 let dotColor: Color = isPast ? gold.opacity(0.55) : Color.white.opacity(0.30)
-
                 ctx.fill(Path(ellipseIn: CGRect(x: px - dotR, y: py - dotR,
                                                 width: dotR * 2, height: dotR * 2)),
                          with: .color(dotColor))
             }
 
-            // ── Sun position dot (gold glow) ──────────────────────────────────
             let sunX = xFor(now)
             let sunY = yFor(altitude(at: now))
             ctx.fill(Path(ellipseIn: CGRect(x: sunX - 14, y: sunY - 14, width: 28, height: 28)),
@@ -313,9 +301,15 @@ struct PrayerNameLabel: View {
     let size: CGFloat
 
     var body: some View {
-        Text(name.uppercased())
-            .font(.system(size: size, weight: .semibold, design: .rounded))
-            .tracking(Makam.trackingLoose)
-            .foregroundStyle(Makam.sand)
+        if #available(iOS 14, *) {
+            Text(name.uppercased())
+                .font(.system(size: size, weight: .semibold, design: .rounded))
+                .tracking(Makam.trackingLoose)
+                .foregroundColor(Makam.sand)
+        } else {
+            Text(name.uppercased())
+                .font(.system(size: size, weight: .semibold, design: .rounded))
+                .foregroundColor(Makam.sand)
+        }
     }
 }

@@ -4,8 +4,8 @@ import PackageDescription
 let package = Package(
     name: "Makam",
     platforms: [
-        .iOS(.v17),
-        .macOS(.v14)
+        .iOS(.v13),
+        .macOS(.v11)
     ],
     products: [
         .library(
@@ -22,7 +22,6 @@ let package = Package(
                 "Models",
                 "Services",
                 "Localization",
-                "MakamApp.swift",
                 "ContentView.swift"
             ]
         ),

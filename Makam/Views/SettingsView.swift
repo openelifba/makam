@@ -17,24 +17,25 @@ private enum MakamStyle {
 struct SettingsView: View {
     @EnvironmentObject var prayerViewModel: PrayerViewModel
     @EnvironmentObject var lang: LanguageManager
-    @StateObject private var vm = SettingsViewModel()
-    @State private var navigationPath = NavigationPath()
+    @EnvironmentObject var vm: SettingsViewModel
+    @State private var navReset = UUID()
     @Binding var selectedTab: AppTab
 
     var body: some View {
-        NavigationStack(path: $navigationPath) {
+        NavigationView {
             SettingsRootView(
                 vm: vm,
-                navigationPath: $navigationPath,
                 onSave: {
                     vm.saveSettings()
                     Task { await prayerViewModel.fetchPrayers() }
-                    navigationPath = NavigationPath()
+                    navReset = UUID()
                     selectedTab = .prayerTimes
                 }
             )
         }
-        .task { await vm.loadCountries() }
+        .navigationViewStyle(.stack)
+        .id(navReset)
+        .onAppear { Task { await vm.loadCountries() } }
     }
 }
 
@@ -44,7 +45,6 @@ private struct SettingsRootView: View {
     @EnvironmentObject var lang: LanguageManager
     @EnvironmentObject var prayerViewModel: PrayerViewModel
     @ObservedObject var vm: SettingsViewModel
-    @Binding var navigationPath: NavigationPath
     let onSave: () -> Void
 
     @State private var notificationsEnabled: Bool = NotificationService.isEnabled()
@@ -54,153 +54,154 @@ private struct SettingsRootView: View {
         ZStack {
             MakamStyle.bg.ignoresSafeArea()
 
-            List {
-                // MARK: Language Section
-                Section {
-                    HStack(spacing: 12) {
-                        Image(systemName: "globe")
-                            .font(.system(size: 14))
-                            .foregroundStyle(MakamStyle.gold)
-                            .frame(width: 22)
-                        Picker("", selection: Binding(
-                            get: { lang.current },
-                            set: { newValue in
-                                lang.setLanguage(newValue)
-                                Analytics.logEvent(
-                                    "language_changed",
-                                    metadata: ["language": String(describing: newValue)]
-                                )
-                            }
-                        )) {
-                            ForEach(AppLanguage.allCases) { language in
-                                Text(language.displayName)
-                                    .tag(language)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .labelsHidden()
-                        .tint(MakamStyle.sand)
-                        .font(.system(size: 16, weight: .regular, design: .rounded))
-                    }
-                    .listRowBackground(MakamStyle.rowBg)
-                } header: {
-                    Text(lang.str(.settingsLanguage).uppercased())
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        .foregroundStyle(MakamStyle.sandDim)
+            listContent
+        }
+        .navigationBarTitle(lang.str(.tabSettings), displayMode: .inline)
+        .background(MakamStyle.bg.ignoresSafeArea())
+        .alert("", isPresented: $showPermissionAlert) {
+            Button("OK", role: .cancel) { }
+            Button(lang.str(.tabSettings)) {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
                 }
+            }
+        } message: {
+            Text(lang.str(.settingsNotificationPermissionMessage))
+        }
+    }
 
-                // MARK: Location Section
-                Section {
-                    NavigationLink(
-                        destination: CountryPickerView(vm: vm, onSave: onSave)
-                            .task { await vm.loadCountries() }
-                    ) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "location.fill")
-                                .font(.system(size: 14))
-                                .foregroundStyle(MakamStyle.gold)
-                                .frame(width: 22)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(lang.str(.settingsLocation))
-                                    .font(.system(size: 16, weight: .regular, design: .rounded))
-                                    .foregroundStyle(MakamStyle.sand)
-                                if let district = UserDefaults.standard.savedDistrictName, !district.isEmpty {
-                                    Text(district)
-                                        .font(.system(size: 12, weight: .light, design: .rounded))
-                                        .foregroundStyle(MakamStyle.sandDim)
-                                }
-                            }
-                        }
-                        .padding(.vertical, 2)
-                    }
-                    .listRowBackground(MakamStyle.rowBg)
-                    .listRowSeparatorTint(MakamStyle.sand.opacity(0.1))
-                } header: {
-                    Text(lang.str(.settingsLocation).uppercased())
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        .foregroundStyle(MakamStyle.sandDim)
-                }
-
-                // MARK: Notifications Section
-                Section {
-                    Toggle(isOn: $notificationsEnabled) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "bell.fill")
-                                .font(.system(size: 14))
-                                .foregroundStyle(MakamStyle.gold)
-                                .frame(width: 22)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(lang.str(.settingsAzanReminder))
-                                    .font(.system(size: 16, weight: .regular, design: .rounded))
-                                    .foregroundStyle(MakamStyle.sand)
-                                Text(lang.str(.settingsAzanReminderDetail))
-                                    .font(.system(size: 12, weight: .light, design: .rounded))
-                                    .foregroundStyle(MakamStyle.sandDim)
-                            }
-                        }
-                        .padding(.vertical, 2)
-                    }
-                    .tint(MakamStyle.gold)
-                    .listRowBackground(MakamStyle.rowBg)
-                    .listRowSeparatorTint(MakamStyle.sand.opacity(0.1))
-                    .onChange(of: notificationsEnabled) { _, newValue in
-                        if newValue {
-                            Task {
-                                let granted = await NotificationService.requestAuthorization()
-                                if granted {
-                                    NotificationService.setEnabled(true)
-                                    if let schedule = prayerViewModel.schedule {
-                                        NotificationService.scheduleNotifications(
-                                            for: schedule,
-                                            language: lang.current
-                                        )
-                                    }
-                                } else {
-                                    // Permission denied — revert toggle
-                                    notificationsEnabled = false
-                                    showPermissionAlert = true
-                                }
-                                Analytics.logEvent(
-                                    "notifications_toggled",
-                                    metadata: [
-                                        "enabled": granted ? "true" : "false",
-                                        "permissionGranted": granted ? "true" : "false",
-                                    ]
-                                )
-                            }
-                        } else {
-                            NotificationService.setEnabled(false)
-                            NotificationService.cancelAll()
+    private var listContent: some View {
+        List {
+            // MARK: Language Section
+            Section {
+                HStack(spacing: 12) {
+                    Image(systemName: "globe")
+                        .font(.system(size: 14))
+                        .foregroundColor(MakamStyle.gold)
+                        .frame(width: 22)
+                    Picker("", selection: Binding(
+                        get: { lang.current },
+                        set: { newValue in
+                            lang.setLanguage(newValue)
                             Analytics.logEvent(
-                                "notifications_toggled",
-                                metadata: ["enabled": "false", "permissionGranted": "true"]
+                                "language_changed",
+                                metadata: ["language": String(describing: newValue)]
                             )
                         }
+                    )) {
+                        ForEach(AppLanguage.allCases) { language in
+                            Text(language.displayName)
+                                .tag(language)
+                        }
                     }
-                } header: {
-                    Text(lang.str(.settingsNotifications).uppercased())
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        .foregroundStyle(MakamStyle.sandDim)
+                    .labelsHidden()
+                    .accentColor(MakamStyle.sand)
+                    .font(.system(size: 16, weight: .regular, design: .rounded))
                 }
+                .listRowBackground(MakamStyle.rowBg)
+            } header: {
+                Text(lang.str(.settingsLanguage).uppercased())
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundColor(MakamStyle.sandDim)
             }
-            .listStyle(.insetGrouped)
-            .scrollContentBackground(.hidden)
-            .tint(MakamStyle.gold)
-            .alert("", isPresented: $showPermissionAlert) {
-                Button("OK", role: .cancel) { }
-                Button(lang.str(.tabSettings)) {
-                    if let url = URL(string: UIApplication.openSettingsURLString) {
-                        UIApplication.shared.open(url)
+
+            // MARK: Location Section
+            Section {
+                NavigationLink(
+                    destination: CountryPickerView(vm: vm, onSave: onSave)
+                        .onAppear { Task { await vm.loadCountries() } }
+                ) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "location.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(MakamStyle.gold)
+                            .frame(width: 22)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(lang.str(.settingsLocation))
+                                .font(.system(size: 16, weight: .regular, design: .rounded))
+                                .foregroundColor(MakamStyle.sand)
+                            if let district = UserDefaults.standard.savedDistrictName, !district.isEmpty {
+                                Text(district)
+                                    .font(.system(size: 12, weight: .light, design: .rounded))
+                                    .foregroundColor(MakamStyle.sandDim)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+                .listRowBackground(MakamStyle.rowBg)
+            } header: {
+                Text(lang.str(.settingsLocation).uppercased())
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundColor(MakamStyle.sandDim)
+            }
+
+            // MARK: Notifications Section
+            Section {
+                Toggle(isOn: $notificationsEnabled) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "bell.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(MakamStyle.gold)
+                            .frame(width: 22)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(lang.str(.settingsAzanReminder))
+                                .font(.system(size: 16, weight: .regular, design: .rounded))
+                                .foregroundColor(MakamStyle.sand)
+                            Text(lang.str(.settingsAzanReminderDetail))
+                                .font(.system(size: 12, weight: .light, design: .rounded))
+                                .foregroundColor(MakamStyle.sandDim)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+                .accentColor(MakamStyle.gold)
+                .listRowBackground(MakamStyle.rowBg)
+                .compatOnChange(of: notificationsEnabled) { newValue in
+                    if newValue {
+                        Task {
+                            let granted = await NotificationService.requestAuthorization()
+                            if granted {
+                                NotificationService.setEnabled(true)
+                                if let schedule = prayerViewModel.schedule {
+                                    NotificationService.scheduleNotifications(
+                                        for: schedule,
+                                        language: lang.current
+                                    )
+                                }
+                            } else {
+                                notificationsEnabled = false
+                                showPermissionAlert = true
+                            }
+                            Analytics.logEvent(
+                                "notifications_toggled",
+                                metadata: [
+                                    "enabled": granted ? "true" : "false",
+                                    "permissionGranted": granted ? "true" : "false",
+                                ]
+                            )
+                        }
+                    } else {
+                        NotificationService.setEnabled(false)
+                        NotificationService.cancelAll()
+                        Analytics.logEvent(
+                            "notifications_toggled",
+                            metadata: ["enabled": "false", "permissionGranted": "true"]
+                        )
                     }
                 }
-            } message: {
-                Text(lang.str(.settingsNotificationPermissionMessage))
+            } header: {
+                Text(lang.str(.settingsNotifications).uppercased())
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundColor(MakamStyle.sandDim)
             }
         }
-        .navigationTitle(lang.str(.tabSettings))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(MakamStyle.bg, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
+        .listStyle(GroupedListStyle())
+        .background(MakamStyle.bg)
+        .accentColor(MakamStyle.gold)
+        .onAppear {
+            UITableView.appearance().backgroundColor = .clear
+        }
     }
 }
 
@@ -227,41 +228,58 @@ private struct CountryPickerView: View {
 
             Group {
                 if vm.isLoadingCountries {
-                    ProgressView()
-                        .tint(MakamStyle.gold)
+                    ActivityIndicatorView(color: UIColor(MakamStyle.gold))
                 } else if vm.countries.isEmpty {
                     EmptyStateView(message: lang.str(.settingsCountryError))
                 } else {
-                    List(filtered) { country in
-                        NavigationLink(
-                            destination: CityPickerView(
-                                vm: vm,
-                                country: country,
-                                onSave: onSave
-                            )
-                            .task { await vm.selectCountry(country) }
-                        ) {
-                            LocationRow(
-                                name: country.name,
-                                subtitle: country.nameEn,
-                                isSelected: vm.selectedCountry?.id == country.id
-                            )
-                        }
-                        .listRowBackground(MakamStyle.rowBg)
-                        .listRowSeparatorTint(MakamStyle.sand.opacity(0.1))
-                    }
-                    .listStyle(.insetGrouped)
-                    .scrollContentBackground(.hidden)
-                    .searchable(text: $searchText, prompt: lang.str(.settingsSearchCountry))
-                    .tint(MakamStyle.gold)
+                    countryList
                 }
             }
         }
-        .navigationTitle(lang.str(.settingsSelectCountry))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(MakamStyle.bg, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
+        .navigationBarTitle(lang.str(.settingsSelectCountry), displayMode: .inline)
+        .background(MakamStyle.bg.ignoresSafeArea())
         .errorBanner(vm.errorMessage)
+    }
+
+    private var countryList: some View {
+        Group {
+            if #available(iOS 15, *) {
+                List(filtered) { country in
+                    countryRow(country)
+                }
+                .listStyle(GroupedListStyle())
+                .background(MakamStyle.bg)
+                .searchable(text: $searchText, prompt: lang.str(.settingsSearchCountry))
+                .accentColor(MakamStyle.gold)
+                .onAppear { UITableView.appearance().backgroundColor = .clear }
+            } else {
+                List(filtered) { country in
+                    countryRow(country)
+                }
+                .listStyle(GroupedListStyle())
+                .background(MakamStyle.bg)
+                .accentColor(MakamStyle.gold)
+                .onAppear { UITableView.appearance().backgroundColor = .clear }
+            }
+        }
+    }
+
+    private func countryRow(_ country: EzanVaktiUlke) -> some View {
+        NavigationLink(
+            destination: CityPickerView(
+                vm: vm,
+                country: country,
+                onSave: onSave
+            )
+            .onAppear { Task { await vm.selectCountry(country) } }
+        ) {
+            LocationRow(
+                name: country.name,
+                subtitle: country.nameEn,
+                isSelected: vm.selectedCountry?.id == country.id
+            )
+        }
+        .listRowBackground(MakamStyle.rowBg)
     }
 }
 
@@ -289,41 +307,58 @@ private struct CityPickerView: View {
 
             Group {
                 if vm.isLoadingCities {
-                    ProgressView()
-                        .tint(MakamStyle.gold)
+                    ActivityIndicatorView(color: UIColor(MakamStyle.gold))
                 } else if vm.cities.isEmpty {
                     EmptyStateView(message: lang.str(.settingsCityError))
                 } else {
-                    List(filtered) { city in
-                        NavigationLink(
-                            destination: DistrictPickerView(
-                                vm: vm,
-                                city: city,
-                                onSave: onSave
-                            )
-                            .task { await vm.selectCity(city) }
-                        ) {
-                            LocationRow(
-                                name: city.name,
-                                subtitle: city.nameEn,
-                                isSelected: vm.selectedCity?.id == city.id
-                            )
-                        }
-                        .listRowBackground(MakamStyle.rowBg)
-                        .listRowSeparatorTint(MakamStyle.sand.opacity(0.1))
-                    }
-                    .listStyle(.insetGrouped)
-                    .scrollContentBackground(.hidden)
-                    .searchable(text: $searchText, prompt: lang.str(.settingsSearchCity))
-                    .tint(MakamStyle.gold)
+                    cityList
                 }
             }
         }
-        .navigationTitle(lang.str(.settingsSelectCity))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(MakamStyle.bg, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
+        .navigationBarTitle(lang.str(.settingsSelectCity), displayMode: .inline)
+        .background(MakamStyle.bg.ignoresSafeArea())
         .errorBanner(vm.errorMessage)
+    }
+
+    private var cityList: some View {
+        Group {
+            if #available(iOS 15, *) {
+                List(filtered) { city in
+                    cityRow(city)
+                }
+                .listStyle(GroupedListStyle())
+                .background(MakamStyle.bg)
+                .searchable(text: $searchText, prompt: lang.str(.settingsSearchCity))
+                .accentColor(MakamStyle.gold)
+                .onAppear { UITableView.appearance().backgroundColor = .clear }
+            } else {
+                List(filtered) { city in
+                    cityRow(city)
+                }
+                .listStyle(GroupedListStyle())
+                .background(MakamStyle.bg)
+                .accentColor(MakamStyle.gold)
+                .onAppear { UITableView.appearance().backgroundColor = .clear }
+            }
+        }
+    }
+
+    private func cityRow(_ city: EzanVaktiSehir) -> some View {
+        NavigationLink(
+            destination: DistrictPickerView(
+                vm: vm,
+                city: city,
+                onSave: onSave
+            )
+            .onAppear { Task { await vm.selectCity(city) } }
+        ) {
+            LocationRow(
+                name: city.name,
+                subtitle: city.nameEn,
+                isSelected: vm.selectedCity?.id == city.id
+            )
+        }
+        .listRowBackground(MakamStyle.rowBg)
     }
 }
 
@@ -351,54 +386,66 @@ private struct DistrictPickerView: View {
 
             Group {
                 if vm.isLoadingDistricts {
-                    ProgressView()
-                        .tint(MakamStyle.gold)
+                    ActivityIndicatorView(color: UIColor(MakamStyle.gold))
                 } else if vm.districts.isEmpty {
                     EmptyStateView(message: lang.str(.settingsDistrictError))
                 } else {
-                    List(filtered) { district in
-                        Button {
-                            vm.selectDistrict(district)
-                            Analytics.logEvent(
-                                "location_changed",
-                                metadata: [
-                                    "countryName": vm.selectedCountry?.name ?? "",
-                                    "cityName": vm.selectedCity?.name ?? "",
-                                    "districtName": district.name,
-                                ]
-                            )
-                        } label: {
-                            LocationRow(
-                                name: district.name,
-                                subtitle: district.nameEn,
-                                isSelected: vm.selectedDistrict?.id == district.id
-                            )
-                        }
-                        .listRowBackground(MakamStyle.rowBg)
-                        .listRowSeparatorTint(MakamStyle.sand.opacity(0.1))
-                    }
-                    .listStyle(.insetGrouped)
-                    .scrollContentBackground(.hidden)
-                    .searchable(text: $searchText, prompt: lang.str(.settingsSearchDistrict))
-                    .tint(MakamStyle.gold)
+                    districtList
                 }
             }
         }
-        .navigationTitle(lang.str(.settingsSelectDistrict))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(MakamStyle.bg, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button(lang.str(.settingsSave)) { onSave() }
-                    .disabled(vm.selectedDistrict == nil)
-                    .foregroundStyle(
-                        vm.selectedDistrict != nil ? MakamStyle.gold : Color.gray
-                    )
-                    .fontWeight(.semibold)
+        .navigationBarTitle(lang.str(.settingsSelectDistrict), displayMode: .inline)
+        .background(MakamStyle.bg.ignoresSafeArea())
+        .navigationBarItems(trailing:
+            Button(lang.str(.settingsSave)) { onSave() }
+                .disabled(vm.selectedDistrict == nil)
+                .foregroundColor(vm.selectedDistrict != nil ? MakamStyle.gold : Color.gray)
+        )
+        .errorBanner(vm.errorMessage)
+    }
+
+    private var districtList: some View {
+        Group {
+            if #available(iOS 15, *) {
+                List(filtered) { district in
+                    districtRow(district)
+                }
+                .listStyle(GroupedListStyle())
+                .background(MakamStyle.bg)
+                .searchable(text: $searchText, prompt: lang.str(.settingsSearchDistrict))
+                .accentColor(MakamStyle.gold)
+                .onAppear { UITableView.appearance().backgroundColor = .clear }
+            } else {
+                List(filtered) { district in
+                    districtRow(district)
+                }
+                .listStyle(GroupedListStyle())
+                .background(MakamStyle.bg)
+                .accentColor(MakamStyle.gold)
+                .onAppear { UITableView.appearance().backgroundColor = .clear }
             }
         }
-        .errorBanner(vm.errorMessage)
+    }
+
+    private func districtRow(_ district: EzanVaktiIlce) -> some View {
+        Button {
+            vm.selectDistrict(district)
+            Analytics.logEvent(
+                "location_changed",
+                metadata: [
+                    "countryName": vm.selectedCountry?.name ?? "",
+                    "cityName": vm.selectedCity?.name ?? "",
+                    "districtName": district.name,
+                ]
+            )
+        } label: {
+            LocationRow(
+                name: district.name,
+                subtitle: district.nameEn,
+                isSelected: vm.selectedDistrict?.id == district.id
+            )
+        }
+        .listRowBackground(MakamStyle.rowBg)
     }
 }
 
@@ -414,12 +461,12 @@ private struct LocationRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(name)
                     .font(.system(size: 16, weight: .regular, design: .rounded))
-                    .foregroundStyle(MakamStyle.sand)
+                    .foregroundColor(MakamStyle.sand)
 
                 if let sub = subtitle, !sub.isEmpty, sub != name {
                     Text(sub)
                         .font(.system(size: 12, weight: .light, design: .rounded))
-                        .foregroundStyle(MakamStyle.sandDim)
+                        .foregroundColor(MakamStyle.sandDim)
                 }
             }
 
@@ -427,7 +474,7 @@ private struct LocationRow: View {
 
             if isSelected {
                 Image(systemName: "checkmark")
-                    .foregroundStyle(MakamStyle.gold)
+                    .foregroundColor(MakamStyle.gold)
                     .font(.system(size: 14, weight: .semibold))
             }
         }
@@ -442,10 +489,10 @@ private struct EmptyStateView: View {
         VStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.largeTitle)
-                .foregroundStyle(MakamStyle.gold)
+                .foregroundColor(MakamStyle.gold)
             Text(message)
                 .font(.system(size: 14, design: .rounded))
-                .foregroundStyle(MakamStyle.sandDim)
+                .foregroundColor(MakamStyle.sandDim)
                 .multilineTextAlignment(.center)
         }
         .padding()
@@ -458,11 +505,12 @@ private struct ErrorBannerModifier: ViewModifier {
     let message: String?
 
     func body(content: Content) -> some View {
-        content.safeAreaInset(edge: .bottom) {
+        ZStack(alignment: .bottom) {
+            content
             if let msg = message {
                 Text(msg)
                     .font(.system(size: 13, design: .rounded))
-                    .foregroundStyle(MakamStyle.white)
+                    .foregroundColor(MakamStyle.white)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
                     .frame(maxWidth: .infinity)
