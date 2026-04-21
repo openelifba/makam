@@ -5,7 +5,7 @@ import AVFoundation
 // MARK: - ShortsView
 
 struct ShortsView: View {
-    @StateObject private var service = JellyfinService()
+    @StateObject private var service = VideoFeedService()
 
     var body: some View {
         ZStack {
@@ -31,7 +31,7 @@ struct ShortsView: View {
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
                     Button("Retry") {
-                        Task { await service.fetchItems() }
+                        Task { await service.loadFirstPage() }
                     }
                     .buttonStyle(.bordered)
                     .tint(.white)
@@ -45,17 +45,18 @@ struct ShortsView: View {
                         .foregroundStyle(.white.opacity(0.7))
                 }
             } else {
-                ShortsFeed(items: service.items)
+                ShortsFeed(items: service.items, service: service)
             }
         }
-        .task { await service.fetchItems() }
+        .task { await service.loadFirstPage() }
     }
 }
 
 // MARK: - Feed
 
 private struct ShortsFeed: View {
-    let items: [JellyfinItem]
+    let items: [Video]
+    let service: VideoFeedService
 
     @State private var activeID: String?
 
@@ -63,7 +64,7 @@ private struct ShortsFeed: View {
         ScrollView(.vertical, showsIndicators: false) {
             LazyVStack(spacing: 0) {
                 ForEach(items) { item in
-                    ShortPlayerView(item: item, isActive: activeID == item.id)
+                    ShortPlayerView(item: item, isActive: activeID == item.id, service: service)
                         .containerRelativeFrame([.horizontal, .vertical])
                 }
             }
@@ -73,7 +74,6 @@ private struct ShortsFeed: View {
         .scrollPosition(id: $activeID)
         .ignoresSafeArea()
         .onAppear {
-            // Activate the first item on load
             if activeID == nil { activeID = items.first?.id }
         }
         .onChange(of: activeID) { _, newID in
@@ -82,6 +82,7 @@ private struct ShortsFeed: View {
                 "shorts_video_loaded",
                 metadata: ["videoId": newID, "videoName": item.name]
             )
+            service.prefetchIfNearEnd(currentId: newID)
         }
     }
 }
@@ -89,11 +90,13 @@ private struct ShortsFeed: View {
 // MARK: - Single short
 
 private struct ShortPlayerView: View {
-    let item: JellyfinItem
+    let item: Video
     let isActive: Bool
+    let service: VideoFeedService
 
     @State private var player: AVPlayer?
     @State private var isMuted = false
+    @State private var isLiked = false
 
     var body: some View {
         ZStack {
@@ -104,7 +107,6 @@ private struct ShortPlayerView: View {
                     .ignoresSafeArea()
             }
 
-            // Bottom overlay
             VStack {
                 Spacer()
                 HStack(alignment: .bottom) {
@@ -116,14 +118,26 @@ private struct ShortPlayerView: View {
                             .lineLimit(2)
                     }
                     Spacer()
-                    Button {
-                        isMuted.toggle()
-                        player?.isMuted = isMuted
-                    } label: {
-                        Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                            .font(.title2)
-                            .foregroundStyle(.white)
-                            .shadow(radius: 4)
+                    HStack(spacing: 20) {
+                        Button {
+                            isLiked.toggle()
+                            let liked = isLiked
+                            Task { await service.setLiked(videoId: item.id, liked: liked) }
+                        } label: {
+                            Image(systemName: isLiked ? "heart.fill" : "heart")
+                                .font(.title2)
+                                .foregroundStyle(isLiked ? .red : .white)
+                                .shadow(radius: 4)
+                        }
+                        Button {
+                            isMuted.toggle()
+                            player?.isMuted = isMuted
+                        } label: {
+                            Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                                .font(.title2)
+                                .foregroundStyle(.white)
+                                .shadow(radius: 4)
+                        }
                     }
                 }
                 .padding(.horizontal, 16)
@@ -150,6 +164,7 @@ private struct ShortPlayerView: View {
             if active {
                 player?.play()
             } else {
+                reportProgress()
                 player?.pause()
                 player?.seek(to: .zero)
             }
@@ -157,25 +172,40 @@ private struct ShortPlayerView: View {
     }
 
     private func setupPlayerIfNeeded() {
-        guard player == nil else { return }
+        guard player == nil, let url = URL(string: item.streamUrl) else { return }
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
         try? AVAudioSession.sharedInstance().setActive(true)
-        let url = JellyfinService.streamURL(for: item.id)
         let avPlayer = AVPlayer(url: url)
         avPlayer.isMuted = isMuted
 
-        // Loop
+        let videoId = item.id
+        let feedService = service
         NotificationCenter.default.addObserver(
             forName: .AVPlayerItemDidPlayToEndTime,
             object: avPlayer.currentItem,
             queue: .main
         ) { _ in
+            let total = avPlayer.currentItem?.duration.seconds ?? 0
+            let duration = (total.isFinite && total > 0) ? Int(total) : 0
+            if duration > 0 {
+                Task { await feedService.recordProgress(videoId: videoId, watchedSeconds: duration, durationSeconds: duration) }
+            }
             avPlayer.seek(to: .zero)
             avPlayer.play()
         }
 
         player = avPlayer
         if isActive { avPlayer.play() }
+    }
+
+    private func reportProgress() {
+        guard let player else { return }
+        let current = player.currentTime().seconds
+        let total = player.currentItem?.duration.seconds ?? 0
+        let watched = (current.isFinite && current > 0) ? Int(current) : 0
+        let duration = (total.isFinite && total > 0) ? Int(total) : 0
+        let videoId = item.id
+        Task { await service.recordProgress(videoId: videoId, watchedSeconds: watched, durationSeconds: duration) }
     }
 }
 

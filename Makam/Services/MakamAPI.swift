@@ -75,5 +75,40 @@ final class MakamAPI {
         try await client.requestVoid(path: "/habits/series/\(seriesId)", method: "DELETE")
     }
 
-    // TODO: Add additional Makam service endpoints here as the backend exposes them.
+    // MARK: - Video feed
+
+    func fetchVideoFeed(cursor: String?, limit: Int) async throws -> VideoFeedPage {
+        var path = "/videos/feed?limit=\(limit)"
+        if let cursor, let encoded = cursor.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            path += "&cursor=\(encoded)"
+        }
+        return try await client.request(VideoFeedPage.self, path: path)
+    }
+
+    // MARK: - Watched videos
+
+    func recordVideoProgress(videoId: String, watchedSeconds: Int, durationSeconds: Int) async throws {
+        struct Body: Encodable {
+            let videoId: String
+            let watchedSeconds: Int
+            let durationSeconds: Int
+        }
+        try await client.requestVoid(
+            path: "/watched-videos/progress",
+            method: "POST",
+            body: Body(videoId: videoId, watchedSeconds: watchedSeconds, durationSeconds: durationSeconds)
+        )
+    }
+
+    func setVideoLike(videoId: String, liked: Bool) async throws {
+        struct Body: Encodable {
+            let videoId: String
+            let liked: Bool
+        }
+        try await client.requestVoid(
+            path: "/watched-videos/like",
+            method: "POST",
+            body: Body(videoId: videoId, liked: liked)
+        )
+    }
 }
