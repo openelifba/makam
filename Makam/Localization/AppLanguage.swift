@@ -45,7 +45,7 @@ enum AppLanguage: String, CaseIterable, Identifiable {
 
 enum LK: String {
     // Tabs
-    case tabHabits, tabPrayerTimes, tabQibla, tabSettings
+    case tabHabits, tabPrayerTimes, tabQibla, tabQuran, tabSettings
     // Prayer names
     case prayerFajr, prayerShuruq, prayerDhuhr, prayerAsr, prayerMaghrib, prayerIsha
     // ContentView
@@ -168,6 +168,7 @@ private let translations: [AppLanguage: T] = [
         .tabHabits: "Alışkanlık",
         .tabPrayerTimes: "Namaz Vakitleri",
         .tabQibla: "Kıble",
+        .tabQuran: "Kuran",
         .tabSettings: "Ayarlar",
 
         .prayerFajr: "İmsak",
@@ -260,6 +261,7 @@ private let translations: [AppLanguage: T] = [
         .tabHabits: "Habits",
         .tabPrayerTimes: "Prayer Times",
         .tabQibla: "Qibla",
+        .tabQuran: "Quran",
         .tabSettings: "Settings",
 
         .prayerFajr: "Fajr",
@@ -352,6 +354,7 @@ private let translations: [AppLanguage: T] = [
         .tabHabits: "عادات",
         .tabPrayerTimes: "أوقات الصلاة",
         .tabQibla: "القبلة",
+        .tabQuran: "القرآن",
         .tabSettings: "الإعدادات",
 
         .prayerFajr: "الفجر",
@@ -444,6 +447,7 @@ private let translations: [AppLanguage: T] = [
         .tabHabits: "Gewohnheiten",
         .tabPrayerTimes: "Gebetszeiten",
         .tabQibla: "Qibla",
+        .tabQuran: "Quran",
         .tabSettings: "Einstellungen",
 
         .prayerFajr: "Fajr",
@@ -536,6 +540,7 @@ private let translations: [AppLanguage: T] = [
         .tabHabits: "Habitudes",
         .tabPrayerTimes: "Heures de prière",
         .tabQibla: "Qibla",
+        .tabQuran: "Coran",
         .tabSettings: "Paramètres",
 
         .prayerFajr: "Fajr",
@@ -628,6 +633,7 @@ private let translations: [AppLanguage: T] = [
         .tabHabits: "Привычки",
         .tabPrayerTimes: "Время намаза",
         .tabQibla: "Кибла",
+        .tabQuran: "Коран",
         .tabSettings: "Настройки",
 
         .prayerFajr: "Фаджр",
@@ -720,6 +726,7 @@ private let translations: [AppLanguage: T] = [
         .tabHabits: "Kebiasaan",
         .tabPrayerTimes: "Waktu Shalat",
         .tabQibla: "Kiblat",
+        .tabQuran: "Quran",
         .tabSettings: "Pengaturan",
 
         .prayerFajr: "Subuh",
