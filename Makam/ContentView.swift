@@ -36,10 +36,18 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showWeatherSheet) {
             if case .loaded(let snapshot) = viewModel.weatherState {
-                WeatherDetailSheet(snapshot: snapshot, schedule: viewModel.schedule)
-                    .presentationDetents([.fraction(0.45)])
-                    .presentationBackground(Makam.bg)
-                    .presentationDragIndicator(.hidden)
+                if #available(iOS 16.4, *) {
+                    WeatherDetailSheet(snapshot: snapshot, schedule: viewModel.schedule)
+                        .presentationDetents([.fraction(0.45)])
+                        .presentationBackground(Makam.bg)
+                        .presentationDragIndicator(.hidden)
+                } else if #available(iOS 16, *) {
+                    WeatherDetailSheet(snapshot: snapshot, schedule: viewModel.schedule)
+                        .presentationDetents([.fraction(0.45)])
+                        .presentationDragIndicator(.hidden)
+                } else {
+                    WeatherDetailSheet(snapshot: snapshot, schedule: viewModel.schedule)
+                }
             }
         }
     }
