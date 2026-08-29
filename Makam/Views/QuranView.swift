@@ -14,7 +14,6 @@ private typealias PlatformColor = NSColor
 
 struct QuranView: View {
     @StateObject private var vm = QuranViewModel()
-    @StateObject private var auth = QuranAuthService.shared
     @State private var showChapterPicker  = false
     @State private var showReciterPicker  = false
     @State private var arabicChunks: [ArabicChunkData] = []
@@ -24,9 +23,7 @@ struct QuranView: View {
         ZStack {
             Color(red: 0.08, green: 0.08, blue: 0.10).ignoresSafeArea()
 
-            if !auth.isSignedIn {
-                signInGate
-            } else if vm.isLoadingChapters {
+            if vm.isLoadingChapters {
                 loadingView(label: "القرآن الكريم")
             } else if let err = vm.errorMessage, vm.chapters.isEmpty {
                 errorView(message: err)
@@ -35,13 +32,6 @@ struct QuranView: View {
             }
         }
         .task { await vm.loadInitialData() }
-        .onChange(of: auth.isSignedIn) { _, signedIn in
-            if signedIn {
-                Task { await vm.loadInitialData() }
-            } else {
-                vm.stopPlayback()
-            }
-        }
         .sheet(isPresented: $showChapterPicker) {
             ChapterPickerSheet(
                 chapters: vm.chapters,
@@ -90,21 +80,6 @@ struct QuranView: View {
             }
 
             Spacer()
-
-            Menu {
-                if let email = auth.session?.email {
-                    Text(email)
-                }
-                Button(role: .destructive) {
-                    auth.signOut()
-                } label: {
-                    Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
-                }
-            } label: {
-                Image(systemName: "person.crop.circle")
-                    .font(.system(size: 17))
-                    .foregroundStyle(Makam.sand.opacity(0.75))
-            }
 
             Button {
                 showChapterPicker = true
@@ -303,64 +278,6 @@ struct QuranView: View {
 
     private func stripHTMLTags(_ text: String) -> String {
         text.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
-    }
-
-    // MARK: Sign-in gate
-
-    private var signInGate: some View {
-        VStack(spacing: 22) {
-            Spacer()
-
-            Image(systemName: "book.closed.fill")
-                .font(.system(size: 54))
-                .foregroundStyle(Makam.gold)
-
-            VStack(spacing: 8) {
-                Text("القرآن الكريم")
-                    .font(.system(size: 32, weight: .semibold))
-                    .foregroundStyle(Makam.gold)
-                    .environment(\.layoutDirection, .rightToLeft)
-
-                Text("Sign in with Quran Foundation to read,\nbookmark, and track your progress.")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Makam.sand.opacity(0.75))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-            }
-
-            Button {
-                Task { await auth.signIn() }
-            } label: {
-                HStack(spacing: 8) {
-                    if auth.isSigningIn {
-                        ProgressView().controlSize(.small).tint(Makam.bg)
-                    } else {
-                        Image(systemName: "arrow.right.circle.fill")
-                            .font(.system(size: 16, weight: .bold))
-                    }
-                    Text(auth.isSigningIn ? "Signing in…" : "Sign in with Quran Foundation")
-                        .font(.system(size: 15, weight: .semibold))
-                }
-                .foregroundStyle(Makam.bg)
-                .padding(.horizontal, 22)
-                .padding(.vertical, 12)
-                .background(Makam.gold)
-                .clipShape(Capsule())
-            }
-            .disabled(auth.isSigningIn)
-
-            if let err = auth.lastError {
-                Text(err)
-                    .font(.footnote)
-                    .foregroundStyle(.red.opacity(0.8))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-            }
-
-            Spacer()
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: Loading / Empty / Error

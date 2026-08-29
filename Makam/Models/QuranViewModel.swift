@@ -52,13 +52,6 @@ final class QuranViewModel: ObservableObject {
     // MARK: - Init / Load
 
     func loadInitialData() async {
-        // Require a signed-in Quran Foundation session before hitting the API.
-        guard QuranAuthService.shared.isSignedIn else {
-            chapters = []
-            verses = []
-            recitations = []
-            return
-        }
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await self.loadChapters() }
             group.addTask { await self.loadRecitations() }
