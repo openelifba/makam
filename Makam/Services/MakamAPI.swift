@@ -128,6 +128,12 @@ final class MakamAPI {
 
     private func locationQuery(lat: Double?, lon: Double?) -> String {
         guard let lat, let lon else { return "" }
-        return "?lat=\(lat)&lon=\(lon)"
+        // Round to ~1.1km precision (2 decimal places) — plenty for
+        // country/city/district-level sorting, and avoids putting
+        // full-precision GPS coordinates in an unauthenticated endpoint's
+        // URL query string (e.g. gateway/proxy access logs).
+        let roundedLat = (lat * 100).rounded() / 100
+        let roundedLon = (lon * 100).rounded() / 100
+        return "?lat=\(roundedLat)&lon=\(roundedLon)"
     }
 }

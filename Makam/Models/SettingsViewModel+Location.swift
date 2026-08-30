@@ -15,24 +15,44 @@ extension SettingsViewModel {
     // MARK: - Load Countries
 
     func loadCountries() async {
-        if !hasResolvedLocation {
-            hasResolvedLocation = true
-            if let coord = await CurrentLocationProvider().requestOneShotLocation() {
-                currentLocationCoordinate = (coord.latitude, coord.longitude)
-            }
-        }
-
         isLoadingCountries = true
         errorMessage = nil
+
+        let coordinate = await resolvedLocation()
+
         do {
             countries = try await MakamAPI.shared.fetchCountries(
-                lat: currentLocationCoordinate?.latitude,
-                lon: currentLocationCoordinate?.longitude
+                lat: coordinate?.latitude,
+                lon: coordinate?.longitude
             )
         } catch {
             errorMessage = error.localizedDescription
         }
         isLoadingCountries = false
+    }
+
+    // MARK: - Resolve Current Location (shared across concurrent callers)
+    //
+    // `loadCountries()` is called from two places in quick succession (the
+    // Settings root `.task` and the CountryPickerView `.task`). Rather than
+    // each call racing its own `CurrentLocationProvider` request — which let
+    // a fast second caller see a "resolved" flag before the first request's
+    // location had actually arrived — every caller awaits the SAME in-flight
+    // `Task`, so they all resolve to the same coordinate (or all correctly
+    // get `nil` together if location isn't available).
+
+    private func resolvedLocation() async -> (latitude: Double, longitude: Double)? {
+        if let existing = locationResolutionTask {
+            return await existing.value
+        }
+        let task = Task<(latitude: Double, longitude: Double)?, Never> {
+            guard let coord = await CurrentLocationProvider().requestOneShotLocation() else { return nil }
+            return (coord.latitude, coord.longitude)
+        }
+        locationResolutionTask = task
+        let result = await task.value
+        currentLocationCoordinate = result
+        return result
     }
 
     // MARK: - Select Country → load its cities

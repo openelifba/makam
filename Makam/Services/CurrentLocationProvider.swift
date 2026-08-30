@@ -16,9 +16,24 @@ final class CurrentLocationProvider: NSObject, CLLocationManagerDelegate {
     private var continuation: CheckedContinuation<CLLocationCoordinate2D?, Never>?
     private var didResume = false
 
+    override init() {
+        super.init()
+        // Country/city/district-level sorting only needs city-level precision;
+        // this avoids a slow, high-accuracy GPS fix (especially on a cold
+        // start indoors) making the 5s timeout the common case.
+        manager.desiredAccuracy = kCLLocationAccuracyThreeKilometers
+    }
+
     func requestOneShotLocation(timeout: TimeInterval = 5) async -> CLLocationCoordinate2D? {
         didResume = false
         manager.delegate = self
+
+        // A cached last-known fix resolves near-instantly and is plenty
+        // precise for this feature — use it before waiting on a fresh fix.
+        if let cached = manager.location {
+            return cached.coordinate
+        }
+
         return await withCheckedContinuation { continuation in
             self.continuation = continuation
             switch manager.authorizationStatus {

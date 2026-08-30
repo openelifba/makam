@@ -1,5 +1,5 @@
 import Foundation
-import WidgetKit
+import Combine
 
 // MARK: - App Group
 
@@ -59,7 +59,13 @@ class SettingsViewModel: ObservableObject {
     /// CoreLocation — required for the MakamWidget build. See
     /// SettingsViewModel+Location.swift for how this gets populated.
     var currentLocationCoordinate: (latitude: Double, longitude: Double)?
-    var hasResolvedLocation = false
+
+    /// In-flight (or completed) location resolution, shared across every
+    /// `loadCountries()` caller so concurrent calls join the same resolution
+    /// instead of racing independent `CurrentLocationProvider` requests.
+    /// Declared here (not a plain `Bool` latch) — see
+    /// SettingsViewModel+Location.swift for how this gets populated/awaited.
+    var locationResolutionTask: Task<(latitude: Double, longitude: Double)?, Never>?
 
     // MARK: - Read Current Saved Location Name (static, no instance needed)
 
