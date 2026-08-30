@@ -23,21 +23,28 @@ extension UserDefaults {
 }
 
 // MARK: - SettingsViewModel
+//
+// NOTE: This file is compiled into BOTH the Makam app target and the
+// MakamWidget extension target (see project.yml). Keep it free of
+// networking/CoreLocation imports and calls — those live in
+// SettingsViewModel+Location.swift, which is NOT part of MakamWidget's
+// sources. Only stored properties, `@Published` declarations, and the two
+// UserDefaults-only static funcs belong here.
 
 @MainActor
 class SettingsViewModel: ObservableObject {
 
     // MARK: Data
 
-    @Published var countries: [EzanVaktiUlke] = []
-    @Published var cities: [EzanVaktiSehir]   = []
-    @Published var districts: [EzanVaktiIlce] = []
+    @Published var countries: [Country]   = []
+    @Published var cities: [City]         = []
+    @Published var districts: [District]  = []
 
     // MARK: Selection
 
-    @Published var selectedCountry: EzanVaktiUlke?
-    @Published var selectedCity: EzanVaktiSehir?
-    @Published var selectedDistrict: EzanVaktiIlce?
+    @Published var selectedCountry: Country?
+    @Published var selectedCity: City?
+    @Published var selectedDistrict: District?
 
     // MARK: UI State
 
@@ -46,73 +53,13 @@ class SettingsViewModel: ObservableObject {
     @Published var isLoadingDistricts = false
     @Published var errorMessage: String?
 
-    // MARK: - Load Countries
+    // MARK: Location (device coordinate, used to sort location lists nearest-first)
 
-    func loadCountries() async {
-        isLoadingCountries = true
-        errorMessage = nil
-        do {
-            countries = try await EzanVaktiService.fetchCountries()
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-        isLoadingCountries = false
-    }
-
-    // MARK: - Select Country → load its cities
-
-    func selectCountry(_ country: EzanVaktiUlke) async {
-        selectedCountry = country
-        selectedCity = nil
-        selectedDistrict = nil
-        cities = []
-        districts = []
-
-        isLoadingCities = true
-        errorMessage = nil
-        do {
-            cities = try await EzanVaktiService.fetchCities(countryId: country.id)
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-        isLoadingCities = false
-    }
-
-    // MARK: - Select City → load its districts
-
-    func selectCity(_ city: EzanVaktiSehir) async {
-        selectedCity = city
-        selectedDistrict = nil
-        districts = []
-
-        isLoadingDistricts = true
-        errorMessage = nil
-        do {
-            districts = try await EzanVaktiService.fetchDistricts(cityId: city.id)
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-        isLoadingDistricts = false
-    }
-
-    // MARK: - Select District
-
-    func selectDistrict(_ district: EzanVaktiIlce) {
-        selectedDistrict = district
-    }
-
-    // MARK: - Persist Selection
-
-    func saveSettings() {
-        guard let district = selectedDistrict else { return }
-        for defaults in [UserDefaults.standard, UserDefaults.appGroup] {
-            defaults.set(district.id,                forKey: UserDefaults.districtIdKey)
-            defaults.set(district.name,              forKey: UserDefaults.districtNameKey)
-            defaults.set(selectedCity?.name ?? "",   forKey: UserDefaults.stateNameKey)
-            defaults.set(selectedCountry?.name ?? "", forKey: UserDefaults.countryNameKey)
-        }
-        WidgetCenter.shared.reloadAllTimelines()
-    }
+    /// Plain tuple (not CLLocationCoordinate2D) so this file stays free of
+    /// CoreLocation — required for the MakamWidget build. See
+    /// SettingsViewModel+Location.swift for how this gets populated.
+    var currentLocationCoordinate: (latitude: Double, longitude: Double)?
+    var hasResolvedLocation = false
 
     // MARK: - Read Current Saved Location Name (static, no instance needed)
 

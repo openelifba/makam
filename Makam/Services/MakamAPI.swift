@@ -111,4 +111,23 @@ final class MakamAPI {
             body: Body(videoId: videoId, liked: liked)
         )
     }
+
+    // MARK: - Locations
+
+    func fetchCountries(lat: Double?, lon: Double?) async throws -> [Country] {
+        try await client.request([Country].self, path: "/locations/countries" + locationQuery(lat: lat, lon: lon))
+    }
+
+    func fetchCities(countryId: String, lat: Double?, lon: Double?) async throws -> [City] {
+        try await client.request([City].self, path: "/locations/countries/\(countryId)/cities" + locationQuery(lat: lat, lon: lon))
+    }
+
+    func fetchDistricts(cityId: String, lat: Double?, lon: Double?) async throws -> [District] {
+        try await client.request([District].self, path: "/locations/cities/\(cityId)/districts" + locationQuery(lat: lat, lon: lon))
+    }
+
+    private func locationQuery(lat: Double?, lon: Double?) -> String {
+        guard let lat, let lon else { return "" }
+        return "?lat=\(lat)&lon=\(lon)"
+    }
 }

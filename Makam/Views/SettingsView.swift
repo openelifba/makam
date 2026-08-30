@@ -213,7 +213,7 @@ private struct CountryPickerView: View {
 
     @State private var searchText = ""
 
-    private var filtered: [EzanVaktiUlke] {
+    private var filtered: [Country] {
         guard !searchText.isEmpty else { return vm.countries }
         return vm.countries.filter {
             $0.name.localizedCaseInsensitiveContains(searchText) ||
@@ -270,12 +270,12 @@ private struct CountryPickerView: View {
 private struct CityPickerView: View {
     @EnvironmentObject var lang: LanguageManager
     @ObservedObject var vm: SettingsViewModel
-    let country: EzanVaktiUlke
+    let country: Country
     let onSave: () -> Void
 
     @State private var searchText = ""
 
-    private var filtered: [EzanVaktiSehir] {
+    private var filtered: [City] {
         guard !searchText.isEmpty else { return vm.cities }
         return vm.cities.filter {
             $0.name.localizedCaseInsensitiveContains(searchText) ||
@@ -332,12 +332,12 @@ private struct CityPickerView: View {
 private struct DistrictPickerView: View {
     @EnvironmentObject var lang: LanguageManager
     @ObservedObject var vm: SettingsViewModel
-    let city: EzanVaktiSehir
+    let city: City
     let onSave: () -> Void
 
     @State private var searchText = ""
 
-    private var filtered: [EzanVaktiIlce] {
+    private var filtered: [District] {
         guard !searchText.isEmpty else { return vm.districts }
         return vm.districts.filter {
             $0.name.localizedCaseInsensitiveContains(searchText) ||

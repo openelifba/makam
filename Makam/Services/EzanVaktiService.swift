@@ -7,44 +7,6 @@
 
 import Foundation
 
-// MARK: - Location Models
-
-struct EzanVaktiUlke: Codable, Identifiable, Hashable {
-    let id: String
-    let name: String
-    let nameEn: String
-
-    enum CodingKeys: String, CodingKey {
-        case id     = "UlkeID"
-        case name   = "UlkeAdi"
-        case nameEn = "UlkeAdiEn"
-    }
-}
-
-struct EzanVaktiSehir: Codable, Identifiable, Hashable {
-    let id: String
-    let name: String
-    let nameEn: String
-
-    enum CodingKeys: String, CodingKey {
-        case id     = "SehirID"
-        case name   = "SehirAdi"
-        case nameEn = "SehirAdiEn"
-    }
-}
-
-struct EzanVaktiIlce: Codable, Identifiable, Hashable {
-    let id: String
-    let name: String
-    let nameEn: String
-
-    enum CodingKeys: String, CodingKey {
-        case id     = "IlceID"
-        case name   = "IlceAdi"
-        case nameEn = "IlceAdiEn"
-    }
-}
-
 // MARK: - Prayer Times Model
 
 struct EzanVaktiVakit: Codable {
@@ -90,29 +52,6 @@ enum EzanVaktiServiceError: LocalizedError {
 enum EzanVaktiService {
 
     private static let baseURL = "https://ezanvakti.emushaf.net"
-
-    // MARK: - Location Endpoints
-
-    static func fetchCountries() async throws -> [EzanVaktiUlke] {
-        guard let url = URL(string: "\(baseURL)/ulkeler") else {
-            throw EzanVaktiServiceError.invalidURL
-        }
-        return try await fetch([EzanVaktiUlke].self, from: url)
-    }
-
-    static func fetchCities(countryId: String) async throws -> [EzanVaktiSehir] {
-        guard let url = URL(string: "\(baseURL)/sehirler/\(countryId)") else {
-            throw EzanVaktiServiceError.invalidURL
-        }
-        return try await fetch([EzanVaktiSehir].self, from: url)
-    }
-
-    static func fetchDistricts(cityId: String) async throws -> [EzanVaktiIlce] {
-        guard let url = URL(string: "\(baseURL)/ilceler/\(cityId)") else {
-            throw EzanVaktiServiceError.invalidURL
-        }
-        return try await fetch([EzanVaktiIlce].self, from: url)
-    }
 
     // MARK: - Prayer Times Endpoint
 

@@ -49,6 +49,8 @@ targets:
         excludes: []
       - path: Makam/Models/SettingsViewModel.swift
         excludes: []
+      - path: Makam/Models/LocationModels.swift
+        excludes: []
     settings:
       base:
         INFOPLIST_FILE: MakamWidget/Info.plist
