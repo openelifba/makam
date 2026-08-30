@@ -52,6 +52,7 @@ struct QuranVerse: Decodable, Identifiable {
     let verseNumber: Int
     let verseKey: String
     let textUthmani: String
+    let pageNumber: Int
     let translations: [QuranTranslation]?
 
     enum CodingKeys: String, CodingKey {
@@ -59,6 +60,7 @@ struct QuranVerse: Decodable, Identifiable {
         case verseNumber = "verse_number"
         case verseKey    = "verse_key"
         case textUthmani = "text_uthmani"
+        case pageNumber  = "page_number"
         case translations
     }
 }
@@ -91,18 +93,18 @@ struct QuranRecitationList: Decodable {
 
 struct QuranRecitation: Decodable, Identifiable, Equatable {
     let id: Int
-    let reciterNameEng: String
-    let styleName: String?
+    let reciterName: String
+    let style: String?
 
     enum CodingKeys: String, CodingKey {
         case id
-        case reciterNameEng = "reciter_name_eng"
-        case styleName      = "style_name"
+        case reciterName = "reciter_name"
+        case style
     }
 
     var displayName: String {
-        guard let style = styleName, !style.isEmpty else { return reciterNameEng }
-        return "\(reciterNameEng) – \(style)"
+        guard let style, !style.isEmpty else { return reciterName }
+        return "\(reciterName) – \(style)"
     }
 }
 

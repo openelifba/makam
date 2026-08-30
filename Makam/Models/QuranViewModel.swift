@@ -32,6 +32,14 @@ final class QuranViewModel: ObservableObject {
     @Published private(set) var currentVerseIndex = 0
     @Published private(set) var playerState: PlayerState = .idle
 
+    // How many times to play each verse before advancing (1 = play once).
+    @Published var repeatPerVerse: Int = 1
+    // 0.5…1.5; applied to AVPlayer.rate while playing.
+    @Published var playbackRate: Float = 1.0
+
+    static let repeatOptions: [Int] = [1, 2, 3, 5, 10]
+    static let rateOptions: [Float] = [0.5, 0.75, 1.0, 1.25, 1.5]
+
     enum PlayerState { case idle, loading, playing, paused, error }
 
     // MARK: Private
@@ -39,6 +47,7 @@ final class QuranViewModel: ObservableObject {
     private var player: AVPlayer?
     private var playerObserver: NSObjectProtocol?
     private var timeObserver: Any?
+    private var currentVersePlayCount = 0
 
     // MARK: - Init / Load
 
@@ -82,10 +91,7 @@ final class QuranViewModel: ObservableObject {
         selectedChapter = chapter
         currentVerseIndex = 0
         audioFiles = [:]
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask { await self.loadVerses(for: chapter) }
-            group.addTask { await self.loadAudio(for: chapter) }
-        }
+        await loadVerses(for: chapter)
     }
 
     private func loadVerses(for chapter: QuranChapter) async {
@@ -105,9 +111,6 @@ final class QuranViewModel: ObservableObject {
         stopPlayback()
         selectedRecitation = recitation
         audioFiles = [:]
-        if let chapter = selectedChapter {
-            await loadAudio(for: chapter)
-        }
     }
 
     private func loadAudio(for chapter: QuranChapter) async {
@@ -130,10 +133,17 @@ final class QuranViewModel: ObservableObject {
     // MARK: - Playback
 
     func playVerse(at index: Int) {
+        playVerse(at: index, resetRepeat: true)
+    }
+
+    private func playVerse(at index: Int, resetRepeat: Bool) {
         guard index < verses.count else { return }
         let verse = verses[index]
         guard let url = audioURL(for: verse) else { return }
 
+        if index != currentVerseIndex || resetRepeat {
+            currentVersePlayCount = 0
+        }
         currentVerseIndex = index
         stopPlayback()
 
@@ -141,9 +151,10 @@ final class QuranViewModel: ObservableObject {
         try? AVAudioSession.sharedInstance().setActive(true)
 
         let item = AVPlayerItem(url: url)
+        item.audioTimePitchAlgorithm = .spectral
         if player == nil { player = AVPlayer() }
         player?.replaceCurrentItem(with: item)
-        player?.play()
+        player?.playImmediately(atRate: playbackRate)
         isPlaying = true
         playerState = .playing
 
@@ -153,9 +164,27 @@ final class QuranViewModel: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
-                self?.advanceToNextVerse()
+                self?.handleVerseEnd()
             }
         }
+    }
+
+    private func handleVerseEnd() {
+        currentVersePlayCount += 1
+        if currentVersePlayCount < max(repeatPerVerse, 1) {
+            playVerse(at: currentVerseIndex, resetRepeat: false)
+        } else {
+            advanceToNextVerse()
+        }
+    }
+
+    func setPlaybackRate(_ rate: Float) {
+        playbackRate = rate
+        if isPlaying { player?.rate = rate }
+    }
+
+    func setRepeatPerVerse(_ count: Int) {
+        repeatPerVerse = max(count, 1)
     }
 
     func togglePlayPause() {
@@ -164,23 +193,47 @@ final class QuranViewModel: ObservableObject {
             player?.pause()
             isPlaying = false
             playerState = .paused
-        } else if playerState == .paused {
-            player?.play()
+            return
+        }
+        if playerState == .paused {
+            player?.playImmediately(atRate: playbackRate)
             isPlaying = true
             playerState = .playing
-        } else {
-            // Start from currentVerseIndex
-            playVerse(at: currentVerseIndex)
+            return
         }
+        Task { await startPlaybackFromCurrent() }
     }
 
     func playPreviousVerse() {
         let target = max(0, currentVerseIndex - 1)
-        playVerse(at: target)
+        Task { await jumpAndPlay(target) }
     }
 
     func playNextVerse() {
-        advanceToNextVerse()
+        let target = currentVerseIndex + 1
+        guard target < verses.count else {
+            stopPlayback()
+            currentVerseIndex = 0
+            return
+        }
+        Task { await jumpAndPlay(target) }
+    }
+
+    private func startPlaybackFromCurrent() async {
+        await ensureAudioLoaded()
+        guard !audioFiles.isEmpty else { return }
+        playVerse(at: currentVerseIndex)
+    }
+
+    private func jumpAndPlay(_ index: Int) async {
+        await ensureAudioLoaded()
+        guard !audioFiles.isEmpty else { return }
+        playVerse(at: index)
+    }
+
+    private func ensureAudioLoaded() async {
+        guard audioFiles.isEmpty, let chapter = selectedChapter else { return }
+        await loadAudio(for: chapter)
     }
 
     private func advanceToNextVerse() {
@@ -191,6 +244,10 @@ final class QuranViewModel: ObservableObject {
             stopPlayback()
             currentVerseIndex = 0
         }
+    }
+
+    var canPlay: Bool {
+        !verses.isEmpty
     }
 
     func stopPlayback() {
