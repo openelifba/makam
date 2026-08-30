@@ -38,6 +38,10 @@ struct MainTabView: View {
                 .tabItem { Label(lang.str(.tabQibla), systemImage: "location.north.line") }
                 .tag(AppTab.qibla)
 
+            QuranView()
+                .tabItem { Label(lang.str(.tabQuran), systemImage: "book.pages") }
+                .tag(AppTab.quran)
+
             ShortsView()
                 .tabItem { Label("Shorts", systemImage: "play.rectangle.on.rectangle") }
                 .tag(AppTab.shorts)
@@ -57,5 +61,5 @@ struct MainTabView: View {
 }
 
 enum AppTab {
-    case habit, prayerTimes, qibla, shorts, settings
+    case habit, prayerTimes, qibla, quran, shorts, settings
 }
